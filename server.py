@@ -175,9 +175,12 @@ def scan_grok():
 
 def scan_apps():
     out = []
-    # Today: chat sqlite 最近活动
-    today_db = os.path.expanduser(
-        "~/Library/Application Support/ai.today.macos.app/chat_QJZl4nw8Z4EqkBYbLpdkXWiBjlohHUVU.sqlite")
+    # Today: chat sqlite 最近活动（文件名含设备 hash，动态发现）
+    today_dbs = sorted(
+        glob.glob(os.path.expanduser(
+            "~/Library/Application Support/ai.today.macos.app/chat_*.sqlite")),
+        key=os.path.getmtime)
+    today_db = today_dbs[-1] if today_dbs else None
     today_title, today_mtime = None, 0
     try:
         con = sqlite3.connect(f"file:{today_db}?mode=ro", uri=True)
