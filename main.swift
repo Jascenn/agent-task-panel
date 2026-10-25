@@ -102,7 +102,100 @@ class PanelController: NSObject, NSWindowDelegate, WKScriptMessageHandler {
     }
 
     func windowWillClose(_ notification: Notification) {
-        NSApp.terminate(nil)
+        // 有菜单栏常驻图标时关窗只隐藏面板，从菜单栏可再次打开；否则维持退出
+        if MenuBarManager.shared.isActive {
+            panel.orderOut(nil)
+        } else {
+            NSApp.terminate(nil)
+        }
+    }
+}
+
+// 菜单栏常驻图标：显示面板 / 置顶 / 自启 / 刷新 / 退出；执行中数量轮询显示在图标旁
+class MenuBarManager: NSObject {
+    static let shared = MenuBarManager()
+    private var statusItem: NSStatusItem?
+    private var timer: Timer?
+
+    var isActive: Bool { statusItem != nil }
+
+    func start(panel: NSPanel) {
+        guard statusItem == nil else { return }
+        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        item.button?.title = "🤖"
+        item.menu = buildMenu(panel: panel)
+        statusItem = item
+        // 每 10 秒拉一次任务统计，执行中 > 0 时在图标旁显示数字
+        timer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { [weak self] _ in
+            self?.refreshCount()
+        }
+        refreshCount()
+    }
+
+    private func buildMenu(panel: NSPanel) -> NSMenu {
+        let menu = NSMenu()
+        menu.delegate = self
+        menu.autoenablesItems = false
+        // 存引用供 menuNeedsUpdate 判断勾选状态
+        menuPanel = panel
+        return menu
+    }
+
+    weak var menuPanel: NSPanel?
+
+    private func refreshCount() {
+        URLSession.shared.dataTask(with: URL(string: "http://127.0.0.1:8765/api/tasks")!) { [weak self] data, _, _ in
+            var running = 0
+            if let data,
+               let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let tasks = obj["tasks"] as? [[String: Any]] {
+                running = tasks.filter { ($0["status"] as? String) == "running" }.count
+            }
+            DispatchQueue.main.async {
+                self?.statusItem?.button?.title = running > 0 ? "🤖 \(running)" : "🤖"
+            }
+        }.resume()
+    }
+}
+
+extension MenuBarManager: NSMenuDelegate {
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        menu.removeAllItems()
+        let pinned = FileManager.default.fileExists(atPath: NSString(string: "~/.agent-panel-pin").expandingTildeInPath)
+        let items: [(String, Selector?, NSControl.StateValue)] = [
+            ("显示任务面板", #selector(showPanel), .off),
+            ("置顶窗口", #selector(togglePin), pinned ? .on : .off),
+            ("开机自启", #selector(toggleAutostart), Settings.autostart ? .on : .off),
+            ("刷新数据", #selector(refreshData), .off),
+            ("退出", #selector(NSApplication.terminate(_:)), .off),
+        ]
+        for (idx, entry) in items.enumerated() {
+            if idx == items.count - 1 { menu.addItem(.separator()) }
+            let it = NSMenuItem(title: entry.0, action: entry.1, keyEquivalent: "")
+            it.target = self
+            it.state = entry.2
+            it.isEnabled = true
+            menu.addItem(it)
+        }
+    }
+    @objc func showPanel() {
+        menuPanel?.orderFrontRegardless()
+        NSApp.activate(ignoringOtherApps: true)
+    }
+    @objc func togglePin() {
+        let flag = NSString(string: "~/.agent-panel-pin").expandingTildeInPath
+        if FileManager.default.fileExists(atPath: flag) {
+            try? FileManager.default.removeItem(atPath: flag)
+        } else {
+            FileManager.default.createFile(atPath: flag, contents: nil)
+        }
+    }
+    @objc func toggleAutostart() { Settings.autostart.toggle() }
+    @objc func refreshData() {
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
+        proc.arguments = ["-f", "AgentTaskPanel.app/Contents/Resources/server.py"]
+        try? proc.run()
     }
 }
 
@@ -329,4 +422,5 @@ controller.load()
 controller.show()
 // 必须强持有 watcher，否则实例被释放、定时器回调里 self 为 nil，置顶永远不生效
 let pinWatcher = PinWatcher(panel: controller.panel)
+MenuBarManager.shared.start(panel: controller.panel)
 app.run()

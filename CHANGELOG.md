@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0] - 2026-10-25
+
+### Added
+- Menu bar item (🤖) showing live running-task count, polling the local API every 10 s
+- Menu bar menu: show panel / pin toggle / launch-at-login toggle / refresh data / quit
+- Closing the window now hides the panel instead of quitting while the menu bar item is active; reopen it from the menu bar
+
 ## [0.1.0] - 2026-10-25
 
 First working release, daily-driver quality.
