@@ -19,7 +19,7 @@ you get a notification when a task finishes, and clicking a card jumps straight 
 
 | Frost | Solid | Clear |
 |---|---|---|
-| ![Frost](docs/screenshot-frost.jpg) | ![Solid](docs/screenshot-solid.jpg) | ![Clear](docs/screenshot-clear.jpg) |
+| ![Frost](docs/screenshots/screenshot-frost.jpg) | ![Solid](docs/screenshots/screenshot-solid.jpg) | ![Clear](docs/screenshots/screenshot-clear.jpg) |
 
 </div>
 
@@ -107,7 +107,7 @@ You can also open the panel in a browser at `http://127.0.0.1:8765`.
 
 ## Docs
 
-Build, signing and release workflow: [docs/BUILD-RELEASE.md](docs/BUILD-RELEASE.md) (中文)
+Build, signing and release workflow: [docs/dev/BUILD-RELEASE.zh-CN.md](docs/dev/BUILD-RELEASE.zh-CN.md) (中文)
 
 ## License
 

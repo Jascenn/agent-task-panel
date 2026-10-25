@@ -82,11 +82,11 @@ git push origin v0.X.Y
 codesign --force --deep --sign - /Applications/AgentTaskPanel.app
 
 # 准备 staging 目录：App + 安装说明（小白用户打开 DMG 就能看懂）
-# 安装说明.txt 模板见仓库 docs/安装说明-template.txt，拷过来改版本号即可
+# 安装说明.txt 模板见仓库 docs/install/install-notes-template.txt，拷过来改版本号即可（模板已随仓库维护）
 rm -rf /tmp/dmg-stage
 mkdir -p /tmp/dmg-stage
 ditto /Applications/AgentTaskPanel.app /tmp/dmg-stage/AgentTaskPanel.app
-cp docs/安装说明-template.txt "/tmp/dmg-stage/安装说明.txt"
+cp docs/install/install-notes-template.txt "/tmp/dmg-stage/安装说明.txt"
 
 create-dmg --overwrite \
   --volname "AgentTaskPanel" \

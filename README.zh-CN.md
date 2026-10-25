@@ -19,7 +19,7 @@
 
 | 磨砂模式 | 纯色模式 | 透明模式 |
 |---|---|---|
-| ![磨砂](docs/screenshot-frost.jpg) | ![纯色](docs/screenshot-solid.jpg) | ![透明](docs/screenshot-clear.jpg) |
+| ![磨砂](docs/screenshots/screenshot-frost.jpg) | ![纯色](docs/screenshots/screenshot-solid.jpg) | ![透明](docs/screenshots/screenshot-clear.jpg) |
 
 </div>
 
@@ -107,7 +107,7 @@ open AgentTaskPanel.app
 
 ## 开发者文档
 
-构建、签名、发布流程见 [docs/BUILD-RELEASE.md](docs/BUILD-RELEASE.md)。
+构建、签名、发布流程见 [docs/dev/BUILD-RELEASE.zh-CN.md](docs/dev/BUILD-RELEASE.zh-CN.md)。
 
 ## License
 
