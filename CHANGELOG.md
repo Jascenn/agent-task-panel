@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.1] - 2026-10-26
+
+### Fixed
+- Data service auto-restart: a watchdog health-checks the local API every 5 s and relaunches server.py if it dies; previously a crashed server left the panel stuck on "service not responding" until manual restart
+- Error banner now shows the correct command (`python3 server.py` from the repo root)
+
+### Changed
+- Menu bar icon replaced with a monochrome SF Symbol template image that adapts to light/dark menu bars; running-task count stays as text next to it
+
 ## [0.2.0] - 2026-10-25
 
 ### Added

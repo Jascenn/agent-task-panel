@@ -212,7 +212,7 @@ async function tick() {
       const list = document.getElementById("list");
       if (!list.querySelector(".err")) {
         list.insertAdjacentHTML("afterbegin",
-          '<div class="err">本地服务未响应，自动重试中…（若持续出现：python3 work/panel/server.py）</div>');
+          '<div class="err">本地服务未响应，正在自动重启…（若持续出现：python3 server.py）</div>');
       }
     }
   }

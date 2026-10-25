@@ -122,7 +122,15 @@ class MenuBarManager: NSObject {
     func start(panel: NSPanel) {
         guard statusItem == nil else { return }
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        item.button?.title = "🤖"
+        // SF Symbol 模板图：跟随菜单栏深浅色自动着色，比 emoji 在深色菜单栏下干净
+        let cfg = NSImage.SymbolConfiguration(pointSize: 14, weight: .medium)
+        if let img = NSImage(systemSymbolName: "rectangle.stack.badge.person.crop", accessibilityDescription: "Agent 任务")?
+            .withSymbolConfiguration(cfg) {
+            img.isTemplate = true
+            item.button?.image = img
+        } else {
+            item.button?.title = "🤖"
+        }
         item.menu = buildMenu(panel: panel)
         statusItem = item
         // 每 10 秒拉一次任务统计，执行中 > 0 时在图标旁显示数字
@@ -152,7 +160,15 @@ class MenuBarManager: NSObject {
                 running = tasks.filter { ($0["status"] as? String) == "running" }.count
             }
             DispatchQueue.main.async {
-                self?.statusItem?.button?.title = running > 0 ? "🤖 \(running)" : "🤖"
+                guard let btn = self?.statusItem?.button else { return }
+                // 图标常驻（模板图自动适配深浅色），执行中数量作文字跟在图标后
+                let cfg = NSImage.SymbolConfiguration(pointSize: 14, weight: .medium)
+                if let img = NSImage(systemSymbolName: "rectangle.stack.badge.person.crop", accessibilityDescription: "Agent 任务")?
+                    .withSymbolConfiguration(cfg) {
+                    img.isTemplate = true
+                    btn.image = img
+                }
+                btn.title = running > 0 ? " \(running)" : ""
             }
         }.resume()
     }
@@ -343,6 +359,45 @@ func startServer() {
     try? proc.run()
 }
 
+// 数据服务守护：server.py 是 App 子进程，一旦意外退出面板就会一直"未响应"。
+// 每 5 秒健康检查，失败就重新拉起（拉起前先探活，避免服务忙时重复起进程）。
+class ServerKeeper {
+    var timer: Timer?
+    var restarting = false
+
+    static func probe() -> Bool {
+        let semaphore = DispatchSemaphore(value: 0)
+        var ok = false
+        URLSession.shared.dataTask(with: URL(string: "http://127.0.0.1:8765/api/tasks")!) { _, r, _ in
+            ok = (r as? HTTPURLResponse)?.statusCode == 200
+            semaphore.signal()
+        }.resume()
+        _ = semaphore.wait(timeout: .now() + 2)
+        return ok
+    }
+
+    static func launch() {
+        guard let py = Bundle.main.url(forResource: "server", withExtension: "py") else { return }
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
+        proc.arguments = [py.path]
+        try? proc.run()
+    }
+
+    func start() {
+        timer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+            guard let self, !self.restarting else { return }
+            if ServerKeeper.probe() { return }
+            self.restarting = true
+            ServerKeeper.launch()
+            // 给服务 3 秒就绪窗口，期间跳过检查避免重复拉起
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+                self?.restarting = false
+            }
+        }
+    }
+}
+
 
 // ============ 设置项（defaults 持久化 + Dock 菜单） ============
 let DOMAIN = "local.agent-task-panel"
@@ -422,5 +477,7 @@ controller.load()
 controller.show()
 // 必须强持有 watcher，否则实例被释放、定时器回调里 self 为 nil，置顶永远不生效
 let pinWatcher = PinWatcher(panel: controller.panel)
+let serverKeeper = ServerKeeper()
+serverKeeper.start()
 MenuBarManager.shared.start(panel: controller.panel)
 app.run()
