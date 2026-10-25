@@ -1,0 +1,20 @@
+AgentTaskPanel 安装说明
+========================
+
+1. 把左边的「AgentTaskPanel」图标拖到右边的「Applications」文件夹里
+2. 打开「应用程序」（或启动台），找到 AgentTaskPanel，双击打开
+3. 首次启动会弹出通知权限请求，点「允许」即可
+
+首次打开如果提示「无法验证开发者」：
+  方法一：在「应用程序」里按住 Control 键点击 AgentTaskPanel → 点「打开」→ 再点「打开」
+  方法二：打开 系统设置 → 隐私与安全性 → 拉到最下面 → 点「仍要打开」
+
+装好之后：
+  · 屏幕右上角菜单栏会出现 🤖 图标，数字代表正在执行的任务数
+  · 悬浮面板会自动出现，点任务卡片可直接跳回对应的 Agent
+  · 数据只在本机读取和分析，不会上传任何内容
+
+卸载方法：把「应用程序」里的 AgentTaskPanel 拖进废纸篓即可。
+（可选清理：删除 ~/.agent-panel-config.json 和 ~/.agent-panel-pin）
+
+问题反馈：https://github.com/Jascenn/agent-task-panel/issues
