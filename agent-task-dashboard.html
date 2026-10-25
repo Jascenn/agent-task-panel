@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent 任务面板</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --card: rgba(255,255,255,.55);
+    --border: rgba(0,0,0,.10);
+    --text: #1f2328;
+    --muted: #6b7280;
+    --running: #0f766e;
+    --waiting: #b45309;
+    --done: #6b7280;
+    --idle: #9ca3af;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --card: rgba(40,40,42,.55);
+      --border: rgba(255,255,255,.12);
+      --text: #ececec;
+      --muted: #9ca3af;
+      --running: #2dd4bf;
+      --waiting: #fbbf24;
+      --done: #9ca3af;
+      --idle: #6b7280;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%;
+    overflow-x: hidden;            /* 杜绝横向滚动条 */
+    overflow-y: auto;
+  }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    /* fullSizeContentView：内容接管全窗，顶部精确留出红绿灯高度 */
+    padding: 40px 14px 14px;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;              /* 页面整体不滚，只有列表区滚 */
+  }
+  .head, .stats { flex-shrink: 0; }
+  #list {
+    flex: 1;
+    overflow-y: auto;              /* 任务列表独立滚动 */
+    min-height: 0;
+    padding: 16px 2px 0;           /* 顶部 16px = mask 渐变区，首卡完整显示 */
+    /* 顶部渐变遮罩：卡片滚入统计卡下方时淡出，过渡自然 */
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 16px);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 16px);
+  }
+  /* 细滚动条，可滚可见 */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-thumb { background: rgba(127,127,127,.35); border-radius: 3px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  .head { padding-left: 0; }
+  /* 透明模式：隐藏标题；按钮平时隐藏，鼠标移入面板右上角浮现（与红绿灯同排右侧），保证随时可切回 */
+  body.bg-clear { padding-top: 34px; }
+  body.bg-clear .head { height: 0; position: relative; }
+  body.bg-clear .head h1 { display: none; }
+  body.bg-clear .head .iconbtn {
+    position: absolute; top: -32px; z-index: 10;
+    opacity: 0; transition: opacity .2s;
+    background: rgba(255,255,255,.92);
+    width: 26px; height: 26px; font-size: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    body.bg-clear .head .iconbtn { background: rgba(40,40,42,.92); }
+  }
+  body.bg-clear:hover .head .iconbtn { opacity: 1; }
+  body.bg-clear .head .iconbtn:nth-of-type(1) { right: 110px; }  /* 📌 */
+  body.bg-clear .head .iconbtn:nth-of-type(2) { right: 74px; }   /* ⚙️ */
+  body.bg-clear .head .iconbtn:nth-of-type(3) { right: 38px; }   /* ◐ */
+  body.bg-clear .head .iconbtn:nth-of-type(4) { right: 2px; }    /* ↻ */
+  /* 任务状态点：macOS 红绿灯配色 */
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; margin-left: 2px; box-shadow: inset 0 0 0 .5px rgba(0,0,0,.12); }
+  .dot.running { background: #34c759; animation: blink 1.6s infinite; }
+  .dot.done { background: #8e8e93; }
+  .dot.idle { background: #febc2e; }
+  @media (prefers-color-scheme: dark) {
+    .dot.done { background: #636366; }
+  }
+  /* 渠道专属色：App 型 agent 各自一个识别色 */
+  .dot.a-chatgpt { background: #10a37f; }
+  .dot.a-codex { background: #e8e8e6; box-shadow: inset 0 0 0 1px rgba(0,0,0,.2); }
+  .dot.a-claude { background: #d97706; }
+  .dot.a-grok-bot { background: #1d1d1f; }
+  .dot.a-muse { background: #3b82f6; }
+  .dot.a-cue { background: #0ea5e9; }
+  .dot.a-today { background: #a855f7; }
+  .dot.a-noi { background: #ef4444; }
+  .dot.a-dayflow { background: #f60; }
+  .dot.a-mole { background: #3d2f23; }
+  .head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  h1 { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; flex: 1; }
+  .iconbtn {
+    border: 1px solid var(--border); background: var(--card); border-radius: 8px;
+    width: 28px; height: 28px; font-size: 14px; cursor: pointer; color: var(--text);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .iconbtn.active { border-color: var(--running); color: var(--running); }
+  /* 透明模式下内联 opacity 会压过 hover 规则，改用 class 控制激活态亮度 */
+  .iconbtn.full { opacity: 1; }
+  .stats { display: flex; gap: 8px; margin-bottom: 12px; }
+  .stat {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 8px 14px; flex: 1; backdrop-filter: blur(20px);
+  }
+  .stat { cursor: pointer; user-select: none; transition: border-color .15s; }
+  .stat.active { border-color: var(--running); }
+  .stat.active b { color: var(--running); }
+  .stat b { font-size: 16px; display: block; }
+  .stat span { font-size: 11px; color: var(--muted); }
+  .task {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    margin-bottom: 8px; padding: 11px 13px; cursor: pointer;
+    backdrop-filter: blur(20px); transition: transform .12s;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .task:hover { transform: translateY(-1px); }
+
+  .t-main { flex: 1; min-width: 0; }
+  .t-title { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .t-meta { font-size: 11.5px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .t-recent { font-size: 11px; color: var(--muted); opacity: .85; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; white-space: nowrap; font-weight: 500; }
+  .badge.running { background: rgba(52,199,89,.15); color: #248a3d; }
+  .badge.done { background: rgba(142,142,147,.15); color: #636366; }
+  .badge.idle { background: rgba(254,188,46,.18); color: #b25000; }
+  @media (prefers-color-scheme: dark) {
+    .badge.running { background: rgba(52,199,89,.18); color: #4cd964; }
+    .badge.done { background: rgba(142,142,147,.2); color: #98989f; }
+    .badge.idle { background: rgba(254,188,46,.2); color: #febc2e; }
+  }
+  .empty { text-align: center; color: var(--muted); padding: 40px 0; }
+  .err { text-align: center; color: var(--waiting); padding: 20px 0; font-size: 12px; }
+  /* 背景三档：frost 毛玻璃(默认) / clear 全透明 / solid 不透明 */
+  body.bg-clear { --card: rgba(255,255,255,.06); }
+  body.bg-clear .stat, body.bg-clear .task { backdrop-filter: none; }
+  @media (prefers-color-scheme: dark) {
+    body.bg-clear { --card: rgba(255,255,255,.05); }
+  }
+  body.bg-solid { --card: #ffffff; --text: #1f2328; --muted: #6b7280; background: #ffffff; }
+  body.bg-solid .stat, body.bg-solid .task { background: #ffffff; border-color: #e8e8e6; }
+  @media (prefers-color-scheme: dark) {
+    body.bg-solid { --card: #1e1e20; --text: #ececec; --muted: #9ca3af; background: #1e1e20; }
+    body.bg-solid .stat, body.bg-solid .task { background: #1e1e20; border-color: #333; }
+  }
+  body.bg-solid .stat, body.bg-solid .task { backdrop-filter: none; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <h1>Agent 任务</h1>
+    <button class="iconbtn" id="pinBtn" title="置顶开关">📌</button>
+    <button class="iconbtn" id="settingsBtn" title="显示渠道配置">⚙️</button>
+    <button class="iconbtn" id="bgBtn" title="背景：毛玻璃">◐</button>
+    <button class="iconbtn" onclick="location.reload()" title="刷新">↻</button>
+  </div>
+  <div id="cfgPanel" style="display:none; margin-bottom:10px; padding:10px; border:1px solid var(--border); border-radius:10px; background:var(--card);">
+    <div style="font-size:12px; color:var(--muted); margin-bottom:6px;">显示哪些渠道（取消勾选即隐藏）</div>
+    <div id="cfgChk" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+    <div style="margin-top:8px; display:flex; gap:8px;">
+      <button id="cfgSave" style="flex:1; padding:5px 0; border:1px solid var(--running); background:transparent; color:var(--running); border-radius:7px; cursor:pointer; font-size:12px;">保存</button>
+      <button id="cfgCancel" style="flex:1; padding:5px 0; border:1px solid var(--border); background:transparent; color:var(--text); border-radius:7px; cursor:pointer; font-size:12px;">取消</button>
+    </div>
+  </div>
+  <div class="stats">
+    <div class="stat" id="fRun" onclick="setFilter('running')"><b id="stRun">-</b><span>执行中</span></div>
+    <div class="stat" id="fDone" onclick="setFilter('done')"><b id="stDone">-</b><span>已完成</span></div>
+    <div class="stat" id="fIdle" onclick="setFilter('idle')"><b id="stIdle">-</b><span>空闲</span></div>
+  </div>
+  <div id="list"><div class="empty">加载中…</div></div>
+
+<script>
+const AGENT_NAME = {
+  codex: "Codex", claude: "Claude Code", chatgpt: "ChatGPT", "grok-bot": "Grok Bot",
+  muse: "Muse", cue: "Cue", today: "Today", noi: "Noi",
+};
+const STATUS = { running: "执行中", done: "已完成", idle: "空闲" };
+let prev = {};   // key -> status，用于完成提醒
+let pinOn = false;
+
+function ago(ts) {
+  const s = Math.max(0, (Date.now() / 1000) - ts);
+  if (s < 60) return "刚刚";
+  if (s < 3600) return Math.floor(s / 60) + " 分钟前";
+  if (s < 86400) return Math.floor(s / 3600) + " 小时前";
+  return Math.floor(s / 86400) + " 天前";
+}
+
+let failCount = 0;
+async function tick() {
+  try {
+    const r = await fetch("/api/tasks");
+    const d = await r.json();
+    failCount = 0;
+    document.getElementById("list").querySelector(".err")?.remove();
+    render(d.tasks);
+    if (d.pin !== pinOn) { pinOn = d.pin; syncPinBtn(); }
+  } catch (e) {
+    failCount++;
+    // 启动前几次失败静默重试（服务由 App 拉起有 1-2 秒就绪窗口）
+    if (failCount > 3) {
+      const list = document.getElementById("list");
+      if (!list.querySelector(".err")) {
+        list.insertAdjacentHTML("afterbegin",
+          '<div class="err">本地服务未响应，自动重试中…（若持续出现：python3 work/panel/server.py）</div>');
+      }
+    }
+  }
+}
+
+let curFilter = null;   // null = 全部
+function setFilter(s) {
+  curFilter = curFilter === s ? null : s;
+  document.getElementById("fRun").classList.toggle("active", curFilter === "running");
+  document.getElementById("fDone").classList.toggle("active", curFilter === "done");
+  document.getElementById("fIdle").classList.toggle("active", curFilter === "idle");
+  tick();
+}
+
+function render(tasks) {
+  const list = document.getElementById("list");
+  const counts = { running: 0, done: 0, idle: 0 };
+  // 统计始终基于全量任务，筛选只影响列表
+  tasks.forEach(t => { counts[t.status] = (counts[t.status] || 0) + 1; });
+  list.innerHTML = "";
+  const shown = curFilter ? tasks.filter(t => t.status === curFilter) : tasks;
+  if (!shown.length) { list.innerHTML = '<div class="empty">' + (curFilter ? "该状态下暂无任务" : "24 小时内暂无 agent 会话") + '</div>'; return; }
+  shown.forEach(t => {
+    const key = t.agent + "|" + t.title + "|" + t.mtime;
+    const prevKey = t.agent + "|" + t.title;
+    if (prev[prevKey] === "running" && t.status === "done" && window.webkit?.messageHandlers) {
+      notifyDone(t);
+    }
+    prev[prevKey] = t.status;
+    const el = document.createElement("div");
+    el.className = "task";
+    el.onclick = () => {
+      if (t.link) location.href = t.link;
+    };
+    const recent = t.recent ? `<div class="t-recent">${escapeHtml(t.recent)}</div>` : "";
+    el.innerHTML = `
+      <div class="dot ${t.status}${t.agent !== 'codex' && t.agent !== 'claude' ? ' a-' + t.agent : ''}"></div>
+      <div class="t-main">
+        <div class="t-title">${escapeHtml(t.title)}</div>
+        <div class="t-meta">${AGENT_NAME[t.agent] || t.agent} · ${escapeHtml(shortCwd(t.cwd))} · ${ago(t.mtime)}</div>
+        ${recent}
+      </div>
+      <span class="badge ${t.status}">${STATUS[t.status] || t.status}</span>`;
+    list.appendChild(el);
+  });
+  document.getElementById("stRun").textContent = counts.running || 0;
+  document.getElementById("stDone").textContent = counts.done || 0;
+  document.getElementById("stIdle").textContent = counts.idle || 0;
+
+}
+
+function shortCwd(c) {
+  if (!c) return "";
+  const parts = c.split("/").filter(Boolean);
+  return parts.slice(-2).join("/");
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+}
+
+function notifyDone(t) {
+  // 原生壳注册了 webkit message handler 时走系统通知；否则页面内提示
+  try {
+    window.webkit.messageHandlers.notify.postMessage(JSON.stringify({ title: AGENT_NAME[t.agent] + " 任务完成", body: t.title }));
+  } catch (e) {}
+}
+
+function syncPinBtn() {
+  const b = document.getElementById("pinBtn");
+  b.classList.toggle("active", pinOn);
+  b.classList.toggle("full", pinOn);
+}
+
+const BG_MODES = ["frost", "clear", "solid"];
+const BG_TITLE = { frost: "背景：毛玻璃", clear: "背景：全透明", solid: "背景：不透明" };
+let bgMode = localStorage.getItem("bgMode") || "frost";
+function applyBg() {
+  document.body.classList.remove("bg-frost", "bg-clear", "bg-solid");
+  document.body.classList.add("bg-" + bgMode);
+  const b = document.getElementById("bgBtn");
+  b.title = BG_TITLE[bgMode];
+  b.classList.toggle("full", bgMode !== "frost");
+  // 通知 Swift：透明模式下隐藏系统红绿灯（鼠标移入面板时由原生侧短暂浮现）
+  window.webkit?.messageHandlers.chrome?.postMessage(bgMode === "clear" ? "clear" : "normal");
+}
+document.getElementById("bgBtn").onclick = () => {
+  bgMode = BG_MODES[(BG_MODES.indexOf(bgMode) + 1) % BG_MODES.length];
+  localStorage.setItem("bgMode", bgMode);
+  applyBg();
+};
+applyBg();
+
+document.getElementById("pinBtn").onclick = async () => {
+  await fetch("/api/pin", { method: "POST" });
+  pinOn = !pinOn;
+  syncPinBtn();
+};
+
+// ============ 渠道显示配置（开源版配置项：~/.agent-panel-config.json） ============
+let allAgents = [];
+async function loadCfgPanel() {
+  const cfg = await (await fetch("/api/config")).json();
+  allAgents = cfg.agents || [];
+  const hidden = new Set(cfg.hidden || []);
+  const box = document.getElementById("cfgChk");
+  box.innerHTML = allAgents.map(a =>
+    `<label style="display:flex;align-items:center;gap:3px;font-size:12px;cursor:pointer;">
+      <input type="checkbox" data-agent="${a.id}" ${hidden.has(a.id) ? "" : "checked"}>${a.name}
+    </label>`).join("");
+}
+document.getElementById("cfgPanel").addEventListener("click", e => e.stopPropagation());
+document.getElementById("cfgSave").onclick = async () => {
+  const hidden = [...document.querySelectorAll("#cfgChk input")]
+    .filter(c => !c.checked).map(c => c.dataset.agent);
+  await fetch("/api/config", {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ hidden })
+  });
+  document.getElementById("cfgPanel").style.display = "none";
+  refresh();
+};
+document.getElementById("cfgCancel").onclick = () => {
+  document.getElementById("cfgPanel").style.display = "none";
+};
+// ⚙️ 优先打开渠道配置；原生设置（开机自启）仅在 App 环境下长按触发
+document.getElementById("settingsBtn").onclick = async () => {
+  const p = document.getElementById("cfgPanel");
+  if (p.style.display === "none") {
+    await loadCfgPanel();
+    p.style.display = "block";
+  } else {
+    p.style.display = "none";
+  }
+};
+
+syncPinBtn();
+tick();
+setInterval(tick, 3000);
+</script>
+</body>
+</html>
