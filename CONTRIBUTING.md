@@ -19,7 +19,7 @@ Requires macOS 13+ and Xcode Command Line Tools. / 需要 macOS 13+ 和 Xcode Co
 |---|---|
 | `src/main.swift` | Native shell: NSPanel, menu bar item, pin watcher, service watchdog |
 | `src/server.py` | Local data service: scans agent session files, serves `127.0.0.1:8765` |
-| `web/panel.html` | Panel frontend (single file, no dependencies) |
+| `resources/` | Everything bundled into the app: Info.plist, AppIcon.icns, panel.html |
 | `scripts/build.sh` | Build + ad-hoc sign |
 | `docs/BUILD-RELEASE.md` | Release workflow (中文) |
 
