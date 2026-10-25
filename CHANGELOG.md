@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.3] - 2026-10-26
+
+### Added
+- Standard macOS app menu bar (About / Settings ⌘, / Refresh data ⌘R / Hide / Quit; Window and Help menus with ⌘M show panel)
+
+### Fixed
+- Repo restructure follow-up: panel.html is a bundled asset and now lives in `resources/`
+- Removed the "Other AI apps" section from the READMEs (Noi is not an agent)
 ## [0.2.2] - 2026-10-26
 
 ### Added

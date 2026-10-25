@@ -84,6 +84,9 @@ class PanelController: NSObject, NSWindowDelegate, WKScriptMessageHandler {
         }
     }
 
+    // 主菜单「设置…」入口：showSettings 是内部方法，包一层 @objc 供菜单 action 调用
+    @objc func showSettingsViaMenu() { showSettings() }
+
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         if message.name == "chrome" {
             chromeHost?.handle(message.body as? String)
@@ -214,6 +217,10 @@ extension MenuBarManager: NSMenuDelegate {
         proc.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
         proc.arguments = ["-f", "AgentTaskPanel.app/Contents/Resources/server.py"]
         try? proc.run()
+    }
+
+    @objc func openGitHub() {
+        NSWorkspace.shared.open(URL(string: "https://github.com/Jascenn/agent-task-panel")!)
     }
 }
 
@@ -472,11 +479,63 @@ extension DockMenuDelegate: NSApplicationDelegate, NSMenuDelegate {
 let app = NSApplication.shared
 app.setActivationPolicy(.regular)
 app.delegate = dockMenuDelegate
+
+// ============ 应用主菜单（左上角 App 名菜单）：macOS 标准结构 ============
+// NSApp 的 mainMenu 不设置时，App 菜单只有灰默认项；补齐 关于/设置/隐藏/退出 与系统快捷键
+func buildAppMainMenu(panel: NSPanel, controller: PanelController) -> NSMenu {
+    let main = NSMenu()
+
+    // App 菜单（第一列，标题由系统自动取 CFBundleName）
+    let appMenu = NSMenu()
+    let about = NSMenuItem(title: "关于 AgentTaskPanel", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+    appMenu.addItem(about)
+    appMenu.addItem(.separator())
+    let settings = NSMenuItem(title: "设置…", action: #selector(PanelController.showSettingsViaMenu), keyEquivalent: ",")
+    settings.target = controller
+    appMenu.addItem(settings)
+    let refresh = NSMenuItem(title: "刷新数据服务", action: #selector(DockMenuDelegate.refreshData), keyEquivalent: "r")
+    refresh.target = dockMenuDelegate
+    appMenu.addItem(refresh)
+    appMenu.addItem(.separator())
+    appMenu.addItem(NSMenuItem(title: "隐藏 AgentTaskPanel", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h"))
+    let hideOthers = NSMenuItem(title: "隐藏其他", action: #selector(NSApplication.hideOtherApplications(_:)), keyEquivalent: "h")
+    hideOthers.keyEquivalentModifierMask = [.command, .option]
+    appMenu.addItem(hideOthers)
+    appMenu.addItem(NSMenuItem(title: "显示全部", action: #selector(NSApplication.unhideAllApplications(_:)), keyEquivalent: ""))
+    appMenu.addItem(.separator())
+    appMenu.addItem(NSMenuItem(title: "退出 AgentTaskPanel", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+    let appItem = NSMenuItem()
+    appItem.submenu = appMenu
+    main.addItem(appItem)
+
+    // 窗口菜单
+    let windowMenu = NSMenu(title: "窗口")
+    let showPanel = NSMenuItem(title: "显示任务面板", action: #selector(MenuBarManager.showPanel), keyEquivalent: "m")
+    showPanel.target = MenuBarManager.shared
+    windowMenu.addItem(showPanel)
+    let close = NSMenuItem(title: "关闭面板", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+    windowMenu.addItem(close)
+    let winItem = NSMenuItem()
+    winItem.submenu = windowMenu
+    main.addItem(winItem)
+
+    // 帮助菜单
+    let helpMenu = NSMenu(title: "帮助")
+    let help = NSMenuItem(title: "GitHub 仓库", action: #selector(MenuBarManager.openGitHub), keyEquivalent: "")
+    help.target = MenuBarManager.shared
+    helpMenu.addItem(help)
+    let helpItem = NSMenuItem()
+    helpItem.submenu = helpMenu
+    main.addItem(helpItem)
+
+    return main
+}
 startServer()
 UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
 let controller = PanelController()
 controller.load()
 controller.show()
+app.mainMenu = buildAppMainMenu(panel: controller.panel, controller: controller)
 // 必须强持有 watcher，否则实例被释放、定时器回调里 self 为 nil，置顶永远不生效
 let pinWatcher = PinWatcher(panel: controller.panel)
 let serverKeeper = ServerKeeper()
