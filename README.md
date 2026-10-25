@@ -66,12 +66,6 @@ The local data service starts with the app, and a 🤖 menu bar item shows how m
 | Muse | ⚠️ Online only | ❌ sessions live on the vendor's server | process detection |
 | ChatGPT | ⚠️ Online only | ❌ sessions live on the vendor's server | process detection |
 
-**Other AI apps** (monitored for convenience, not agents):
-
-| App | Status | Detail | Data source |
-|---|---|---|---|
-| Noi | ⚠️ Online only | ❌ it's a browser, no task concept | process detection |
-
 "Full" = the panel reads local session files and shows real task titles plus recent activity.
 
 ## Privacy
@@ -83,7 +77,7 @@ The panel only **reads** the paths listed above to infer session state. It never
 ```bash
 git clone https://github.com/Jascenn/agent-task-panel.git
 cd agent-task-panel
-zsh build.sh
+zsh scripts/build.sh
 open AgentTaskPanel.app
 ```
 
@@ -96,7 +90,7 @@ You can also open the panel in a browser at `http://127.0.0.1:8765`.
 `~/.agent-panel-config.json` (editable via the panel's ⚙️ menu):
 
 ```json
-{ "hidden": ["today", "noi"] }
+{ "hidden": ["today"] }
 ```
 
 ## Known limitations

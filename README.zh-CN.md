@@ -66,12 +66,6 @@
 | Muse | ⚠️ 仅在线 | ❌ 任务在厂商服务端执行 | 进程检测 |
 | ChatGPT | ⚠️ 仅在线 | ❌ 任务在厂商服务端执行 | 进程检测 |
 
-**其他 AI 应用**（顺手监控，不算 Agent）：
-
-| App | 状态 | 详情 | 数据来源 |
-|---|---|---|---|
-| Noi | ⚠️ 仅在线 | ❌ 是浏览器，无任务概念 | 进程检测 |
-
 「完整」= 面板读取本地会话文件，能显示真实任务标题和最近内容。
 
 ## 隐私
@@ -83,7 +77,7 @@
 ```bash
 git clone https://github.com/Jascenn/agent-task-panel.git
 cd agent-task-panel
-zsh build.sh
+zsh scripts/build.sh
 open AgentTaskPanel.app
 ```
 
@@ -96,7 +90,7 @@ open AgentTaskPanel.app
 `~/.agent-panel-config.json`（面板 ⚙️ 菜单可视化配置）：
 
 ```json
-{ "hidden": ["today", "noi"] }
+{ "hidden": ["today"] }
 ```
 
 ## 已知限制

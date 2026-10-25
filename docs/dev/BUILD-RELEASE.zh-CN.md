@@ -20,7 +20,7 @@
 cd /path/to/agent-task-panel
 
 # 1. 构建（build.sh 内含 ad-hoc 签名）
-zsh build.sh
+zsh scripts/build.sh
 
 # 2. 停掉正在运行的 App 和数据服务
 pkill -f "AgentTaskPanel.app/Contents/MacOS/AgentTaskPanel" 2>/dev/null
@@ -45,7 +45,7 @@ curl -s http://127.0.0.1:8765/api/tasks | head -c 200
 
 ### App 图标
 
-把 `AppIcon.icns` 放在仓库根目录，`build.sh` 会自动打包进 App；不放则使用系统默认图标。
+图标在 `resources/AppIcon.icns`，构建脚本自动打包；不放则使用系统默认图标。
 
 ---
 

@@ -7,7 +7,7 @@ Thanks for your interest in contributing! / 欢迎参与贡献！
 ```bash
 git clone https://github.com/Jascenn/agent-task-panel.git
 cd agent-task-panel
-zsh build.sh
+zsh scripts/build.sh
 open AgentTaskPanel.app
 ```
 
@@ -17,15 +17,15 @@ Requires macOS 13+ and Xcode Command Line Tools. / 需要 macOS 13+ 和 Xcode Co
 
 | File | Purpose |
 |---|---|
-| `main.swift` | Native shell: NSPanel, menu bar item, pin watcher, service watchdog |
-| `server.py` | Local data service: scans agent session files, serves `127.0.0.1:8765` |
-| `agent-task-dashboard.html` | Panel frontend (single file, no dependencies) |
-| `build.sh` | Build + ad-hoc sign |
+| `src/main.swift` | Native shell: NSPanel, menu bar item, pin watcher, service watchdog |
+| `src/server.py` | Local data service: scans agent session files, serves `127.0.0.1:8765` |
+| `web/panel.html` | Panel frontend (single file, no dependencies) |
+| `scripts/build.sh` | Build + ad-hoc sign |
 | `docs/BUILD-RELEASE.md` | Release workflow (中文) |
 
 ## Before opening a PR / 提交 PR 前
 
-1. `zsh build.sh` passes and the app runs / 构建通过且 App 能跑
+1. `zsh scripts/build.sh` passes and the app runs / 构建通过且 App 能跑
 2. Test with at least one real agent session / 用至少一个真实 Agent 会话实测
 3. Do not commit local paths, API keys, or session data / 不要提交本机路径、API key、会话数据
 4. New user-facing features: update both `README.md` and `README.zh-CN.md` / 面向用户的新功能需同步更新中英 README

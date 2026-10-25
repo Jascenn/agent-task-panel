@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build app
-        run: zsh build.sh
+        run: zsh scripts/build.sh
 
       - name: Verify app bundle
         run: |
@@ -22,4 +22,4 @@ jobs:
           codesign --verify --deep AgentTaskPanel.app
 
       - name: Python syntax check
-        run: python3 -m py_compile server.py
+        run: python3 -m py_compile src/server.py
