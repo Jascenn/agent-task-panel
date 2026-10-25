@@ -1,13 +1,19 @@
-AgentTaskPanel 安装说明
-========================
+AgentTaskPanel 安装说明 / Installation Guide
+==============================================
+
+【中文】
 
 1. 把左边的「AgentTaskPanel」图标拖到右边的「Applications」文件夹里
 2. 打开「应用程序」（或启动台），找到 AgentTaskPanel，双击打开
 3. 首次启动会弹出通知权限请求，点「允许」即可
 
-首次打开如果提示「无法验证开发者」：
+首次打开如果提示「无法验证开发者」，任选一种方法：
+
   方法一：在「应用程序」里按住 Control 键点击 AgentTaskPanel → 点「打开」→ 再点「打开」
   方法二：打开 系统设置 → 隐私与安全性 → 拉到最下面 → 点「仍要打开」
+  方法三（命令行，一劳永逸）：打开「终端」（Terminal），粘贴下面这行并回车：
+
+      xattr -dr com.apple.quarantine /Applications/AgentTaskPanel.app
 
 装好之后：
   · 屏幕右上角菜单栏会出现 🤖 图标，数字代表正在执行的任务数
@@ -18,3 +24,29 @@ AgentTaskPanel 安装说明
 （可选清理：删除 ~/.agent-panel-config.json 和 ~/.agent-panel-pin）
 
 问题反馈：https://github.com/Jascenn/agent-task-panel/issues
+
+==============================================================================
+
+【English】
+
+1. Drag the "AgentTaskPanel" icon on the left into the "Applications" folder on the right
+2. Open "Applications" (or Launchpad), find AgentTaskPanel and double-click it
+3. Allow notification permission when prompted on first launch
+
+If macOS says the app "cannot be verified" on first launch, use any one of these:
+
+  Option 1: In "Applications", Control-click AgentTaskPanel → "Open" → "Open" again
+  Option 2: System Settings → Privacy & Security → scroll down → "Open Anyway"
+  Option 3 (Terminal, one-time fix): Open Terminal, paste this line and press Enter:
+
+      xattr -dr com.apple.quarantine /Applications/AgentTaskPanel.app
+
+After installation:
+  · A 🤖 icon appears in the menu bar (top-right); the number shows running task count
+  · The floating panel appears automatically; click a task card to jump back to its Agent
+  · All data is read and analyzed locally only — nothing is uploaded
+
+Uninstall: drag AgentTaskPanel from "Applications" to the Trash.
+(Optional cleanup: remove ~/.agent-panel-config.json and ~/.agent-panel-pin)
+
+Issues: https://github.com/Jascenn/agent-task-panel/issues
