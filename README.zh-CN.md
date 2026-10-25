@@ -101,6 +101,8 @@ open AgentTaskPanel.app
 
 ## 开发者文档
 
+架构与模块参考（中文）：[docs/architecture/](docs/architecture/README.md)
+
 构建、签名、发布流程见 [docs/dev/BUILD-RELEASE.zh-CN.md](docs/dev/BUILD-RELEASE.zh-CN.md)。
 
 ## License
