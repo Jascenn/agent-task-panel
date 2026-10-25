@@ -50,6 +50,8 @@ class PanelController: NSObject, NSWindowDelegate, WKScriptMessageHandler {
         webView.configuration.userContentController.add(self, name: "chrome")
 
         panel.center()
+        // 位置/大小记忆：系统自动在 UserDefaults 里持久化窗口 frame，下次启动原位恢复
+        panel.setFrameAutosaveName("AgentTaskPanelFrame")
         panel.delegate = self
     }
 

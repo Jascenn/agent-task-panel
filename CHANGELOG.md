@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.2] - 2026-10-26
+
+### Added
+- Window position memory: the panel reopens exactly where you left it (standard NSWindow frame autosave)
+
+### Changed
+- App icon: custom macOS-style squircle icon (task cards + status dots) replacing the placeholder
+
 ## [0.2.1] - 2026-10-26
 
 ### Fixed
