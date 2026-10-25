@@ -2,7 +2,11 @@
 
 macOS 悬浮任务面板：聚合本机所有 AI Agent 的会话/任务状态，实时显示"哪些在跑、跑到哪了"，任务卡点击直接跳回对应 Agent。
 
-![screenshot](docs/screenshot.png)
+| 磨砂模式 | 纯色模式 | 透明模式 |
+|---|---|---|
+| ![磨砂](docs/screenshot-frost.jpg) | ![纯色](docs/screenshot-solid.jpg) | ![透明](docs/screenshot-clear.jpg) |
+
+透明模式下红绿灯与功能按钮自动隐藏，鼠标移入窗口时浮现。
 
 ## 支持的 Agent
 
