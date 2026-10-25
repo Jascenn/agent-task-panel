@@ -23,7 +23,7 @@
 
 ## 安装
 
-1. 从 [Releases](https://github.com/Jascenn/agent-task-panel/releases/latest) 下载 `AgentTaskPanel-v0.2.0.dmg`
+1. 从 [Releases](https://github.com/Jascenn/agent-task-panel/releases/latest) 下载最新版 `AgentTaskPanel-vX.Y.Z.dmg`（文件名以 [Releases](https://github.com/Jascenn/agent-task-panel/releases/latest) 页面为准）
 2. 打开 DMG，把 🤖 AgentTaskPanel 拖进旁边的 Applications 文件夹
 3. 首次启动会请求通知权限，允许即可
 
