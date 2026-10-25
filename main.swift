@@ -56,7 +56,7 @@ class PanelController: NSObject, NSWindowDelegate, WKScriptMessageHandler {
     }
 
     func load() {
-        if let url = URL(string: "http://127.0.0.1:8765/") { _ = webView.load(url) }
+        if let url = URL(string: "http://127.0.0.1:8765/") { _ = webView.load(URLRequest(url: url)) }
     }
 
     func show() {
