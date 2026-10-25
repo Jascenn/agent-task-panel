@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build app
+        run: zsh build.sh
+
+      - name: Verify app bundle
+        run: |
+          test -d AgentTaskPanel.app/Contents/MacOS
+          test -f AgentTaskPanel.app/Contents/Resources/server.py
+          test -f AgentTaskPanel.app/Contents/Resources/agent-task-dashboard.html
+          codesign --verify --deep AgentTaskPanel.app
+
+      - name: Python syntax check
+        run: python3 -m py_compile server.py

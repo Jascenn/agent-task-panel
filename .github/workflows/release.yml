@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build app
+        run: zsh build.sh
+
+      - name: Verify app bundle
+        run: |
+          test -d AgentTaskPanel.app/Contents/MacOS
+          test -f AgentTaskPanel.app/Contents/Resources/server.py
+          codesign --verify --deep AgentTaskPanel.app
+
+      - name: Package DMG
+        run: |
+          mkdir -p dmg-stage
+          ditto AgentTaskPanel.app dmg-stage/AgentTaskPanel.app
+          cp docs/安装说明-template.txt "dmg-stage/安装说明.txt"
+          brew install create-dmg
+          create-dmg --overwrite \
+            --volname "AgentTaskPanel" \
+            --window-size 640 400 \
+            --icon-size 110 \
+            --icon "AgentTaskPanel.app" 170 190 \
+            --icon "安装说明.txt" 320 190 \
+            --app-drop-link 470 190 \
+            AgentTaskPanel-${{ github.ref_name }}.dmg \
+            dmg-stage
+
+      - name: Checksum
+        run: shasum -a 256 AgentTaskPanel-${{ github.ref_name }}.dmg > SHA256SUMS
+
+      - name: Extract release notes from CHANGELOG
+        id: notes
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk "/^## \[$VERSION\]/{flag=1;next}/^## \[/{flag=0}flag" CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then echo "See CHANGELOG.md for details." > release-notes.md; fi
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            AgentTaskPanel-${{ github.ref_name }}.dmg
+            SHA256SUMS
+          body_path: release-notes.md
+          fail_on_unmatched_files: true

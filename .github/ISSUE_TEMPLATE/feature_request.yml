@@ -1,0 +1,17 @@
+name: Feature request / 功能建议
+description: Suggest an idea for AgentTaskPanel
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / 要解决的问题
+      description: What are you trying to do? / 你想达成什么？
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution / 期望方案
+    validations:
+      required: false

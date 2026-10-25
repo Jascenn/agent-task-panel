@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions / 使用问题
+    url: https://github.com/Jascenn/agent-task-panel/discussions
+    about: Ask questions in Discussions / 使用问题请到 Discussions

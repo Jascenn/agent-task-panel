@@ -1,0 +1,32 @@
+name: Bug report / Bug 反馈
+description: Report a problem with AgentTaskPanel
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened? / 发生了什么？
+      description: Describe the issue and steps to reproduce. / 描述问题与复现步骤
+    validations:
+      required: true
+  - type: input
+    id: macos-version
+    attributes:
+      label: macOS version / 系统版本
+      placeholder: "e.g. macOS 15.1 (arm64)"
+    validations:
+      required: true
+  - type: input
+    id: app-version
+    attributes:
+      label: App version / App 版本
+      placeholder: "e.g. v0.2.2"
+    validations:
+      required: true
+  - type: textarea
+    id: api-output
+    attributes:
+      label: Local API output / 本地服务输出
+      description: Run `curl -s http://127.0.0.1:8765/api/tasks | head -c 2000` and paste the output. It contains task titles only, no secrets. / 执行上面命令并粘贴输出（仅含任务标题，无敏感信息）
+    validations:
+      required: false

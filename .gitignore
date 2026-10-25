@@ -1,4 +1,7 @@
+# Build artifacts
 AgentTaskPanel.app/
-AppIcon.icns
+*.dmg
+*.zip
 __pycache__/
 .DS_Store
+# Icon source is committed via docs/appicon.png; icns is generated locally
