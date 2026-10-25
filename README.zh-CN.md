@@ -58,18 +58,18 @@
 | Cue | ✅ 完整 | ✅ 实时工作文本 | `~/Library/Application Support/Cue/SessionStore/sessions.sqlite` |
 | Grok Bot | ✅ 完整 | ✅ 会话最近消息 | `~/Library/Application Support/Grok Bot/sand-client-persistence/*.blob` |
 
-**对话类 Agent**（任务在厂商服务端执行，面板只能检测应用是否在线）：
+**对话类 Agent**：
 
 | Agent | 状态 | 任务详情 | 数据来源 |
 |---|---|---|---|
-| Muse | ⚠️ 仅在线 | ❌ 无本地明细 | 进程检测 |
-| ChatGPT | ⚠️ 仅在线 | ❌ 无本地明细 | 进程检测 |
+| Today | ✅ 完整 | ✅ 最近聊天标题 + 活跃度 | `~/Library/Application Support/ai.today.macos.app/chat_*.sqlite` |
+| Muse | ⚠️ 仅在线 | ❌ 任务在厂商服务端执行 | 进程检测 |
+| ChatGPT | ⚠️ 仅在线 | ❌ 任务在厂商服务端执行 | 进程检测 |
 
-**其他 AI 应用**（作为应用监控，不是 Agent）：
+**其他 AI 应用**（顺手监控，不算 Agent）：
 
 | App | 状态 | 详情 | 数据来源 |
 |---|---|---|---|
-| Today | ✅ 真实 | ✅ 最近聊天标题 + 活跃度 | `~/Library/Application Support/ai.today.macos.app/chat_*.sqlite` |
 | Noi | ⚠️ 仅在线 | ❌ 是浏览器，无任务概念 | 进程检测 |
 
 「完整」= 面板读取本地会话文件，能显示真实任务标题和最近内容。

@@ -58,19 +58,19 @@ The local data service starts with the app, and a 🤖 menu bar item shows how m
 | Cue | ✅ Full | ✅ live working text | `~/Library/Application Support/Cue/SessionStore/sessions.sqlite` |
 | Grok Bot | ✅ Full | ✅ session last message | `~/Library/Application Support/Grok Bot/sand-client-persistence/*.blob` |
 
-**Chat agents** (sessions live on the vendor's servers; the panel can only detect that the app is online):
+**Chat agents**:
 
 | Agent | Status | Detail | Data source |
 |---|---|---|---|
-| Muse | ⚠️ Online only | ❌ no local detail | process detection |
-| ChatGPT | ⚠️ Online only | ❌ no local detail | process detection |
+| Today | ✅ Full | ✅ last chat title + activity | `~/Library/Application Support/ai.today.macos.app/chat_*.sqlite` |
+| Muse | ⚠️ Online only | ❌ sessions live on the vendor's server | process detection |
+| ChatGPT | ⚠️ Online only | ❌ sessions live on the vendor's server | process detection |
 
-**Other AI apps** (monitored as apps, not agents):
+**Other AI apps** (monitored for convenience, not agents):
 
 | App | Status | Detail | Data source |
 |---|---|---|---|
-| Today | ✅ Real | ✅ last chat title + activity | `~/Library/Application Support/ai.today.macos.app/chat_*.sqlite` |
-| Noi | ⚠️ Online only | ❌ browser, no task concept | process detection |
+| Noi | ⚠️ Online only | ❌ it's a browser, no task concept | process detection |
 
 "Full" = the panel reads local session files and shows real task titles plus recent activity.
 
