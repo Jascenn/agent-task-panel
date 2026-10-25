@@ -96,6 +96,10 @@ open AgentTaskPanel.app
 - 会话标题取自首条用户消息，注入的系统上下文（AGENTS.md 等）已自动过滤
 - App 暂未做签名和公证（需要 Apple 开发者账号），后续计划接入
 
+## 开发者文档
+
+构建、签名、发布新版本的完整流程见 [docs/BUILD-RELEASE.md](docs/BUILD-RELEASE.md)。
+
 ## License
 
 [MIT](LICENSE) © 2026 Jascenn
