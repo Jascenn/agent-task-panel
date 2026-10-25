@@ -101,8 +101,6 @@ You can also open the panel in a browser at `http://127.0.0.1:8765`.
 
 ## Docs
 
-Architecture and module reference (中文): [docs/architecture/](docs/architecture/README.md)
-
 Build, signing and release workflow: [docs/dev/BUILD-RELEASE.zh-CN.md](docs/dev/BUILD-RELEASE.zh-CN.md) (中文)
 
 ## License
