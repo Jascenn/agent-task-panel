@@ -1,64 +1,84 @@
 <div align="center">
 
+<img src="docs/appicon.png" width="112" alt="AgentTaskPanel">
+
 # AgentTaskPanel
 
-### 一块悬浮面板，看清你所有 AI Agent 的任务状态
+### One floating panel for every AI Agent's task status
 
-**Codex 跑到哪了？Claude Code 完成了没？**<br>
-不用再挨个窗口翻。一块常驻面板实时聚合本机所有 Agent 的会话状态，<br>
-任务结束自动通知，点卡片直接跳回对应的 Agent。
+**Where is Codex? Did Claude Code finish?**<br>
+Stop alt-tabbing. One always-on panel aggregates every AI agent's session state on your Mac —<br>
+you get a notification when a task finishes, and clicking a card jumps straight back to that agent.
 
 [![Release](https://img.shields.io/github/v/release/Jascenn/agent-task-panel?label=release&color=111111)](https://github.com/Jascenn/agent-task-panel/releases/latest)
 [![Stars](https://img.shields.io/github/stars/Jascenn/agent-task-panel?style=flat&color=111111)](https://github.com/Jascenn/agent-task-panel/stargazers)
 [![License](https://img.shields.io/badge/license-MIT-111111)](LICENSE)
 ![macOS](https://img.shields.io/badge/macOS-13%2B-000000?logo=apple&logoColor=white)
 
-**[下载最新版](https://github.com/Jascenn/agent-task-panel/releases/latest)** · [功能](#功能) · [支持的 Agent](#支持的-agent) · [从源码构建](#从源码构建)
+**[Download](https://github.com/Jascenn/agent-task-panel/releases/latest)** · [Features](#features) · [Supported apps](#supported-apps) · [Build from source](#build-from-source) · [简体中文](README.zh-CN.md)
 
-| 磨砂模式 | 纯色模式 | 透明模式 |
+| Frost | Solid | Clear |
 |---|---|---|
-| ![磨砂](docs/screenshot-frost.jpg) | ![纯色](docs/screenshot-solid.jpg) | ![透明](docs/screenshot-clear.jpg) |
+| ![Frost](docs/screenshot-frost.jpg) | ![Solid](docs/screenshot-solid.jpg) | ![Clear](docs/screenshot-clear.jpg) |
 
 </div>
 
-## 安装
+## Install
 
-1. 从 [Releases](https://github.com/Jascenn/agent-task-panel/releases/latest) 下载最新版 `AgentTaskPanel-vX.Y.Z.dmg`（文件名以 [Releases](https://github.com/Jascenn/agent-task-panel/releases/latest) 页面为准）
-2. 打开 DMG，把 🤖 AgentTaskPanel 拖进旁边的 Applications 文件夹
-3. 首次启动会请求通知权限，允许即可
+1. Grab the latest `AgentTaskPanel-vX.Y.Z.dmg` from [Releases](https://github.com/Jascenn/agent-task-panel/releases/latest)
+2. Open the DMG and drag 🤖 AgentTaskPanel into the Applications folder next to it
+3. Allow notifications on first launch — done
 
-就这样。本地数据服务随 App 自动启动，菜单栏会出现 🤖 图标，实时显示执行中的任务数。
+The local data service starts with the app, and a 🤖 menu bar item shows how many tasks are running right now. An install guide (English & 中文) is included inside the DMG.
 
-> App 使用 ad-hoc 签名（无付费开发者证书）。首次打开若提示「无法验证开发者」，右键点击 App → 打开，或到 系统设置 → 隐私与安全性 → 点「仍要打开」。
+> The app is ad-hoc signed (no paid Apple certificate). If macOS says it "cannot be verified": right-click the app → Open, or run `xattr -dr com.apple.quarantine /Applications/AgentTaskPanel.app`.
 
-## 功能
+## Features
 
-- **实时状态**：会话文件 120 秒内有写入 = 执行中；有完成标记 = 已完成；其余 = 空闲
-- **菜单栏常驻**：🤖 图标显示执行中数量，菜单可快速唤起面板 / 切置顶 / 刷新数据 / 退出
-- **三态筛选**：点顶部统计卡筛选执行中/已完成/空闲，再点取消
-- **三色指示灯**：任务前圆点区分渠道（Codex 蓝 / Claude 紫 / Muse 青绿 …），一眼认出来源
-- **三态背景**：毛玻璃 → 全透明 → 纯色；透明模式下红绿灯和所有按钮自动隐藏，鼠标移入浮现
-- **置顶悬浮**：📌 开关，悬浮在所有窗口（含全屏 Space）之上
-- **渠道配置**：⚙️ 勾选哪些渠道显示/隐藏，保存到 `~/.agent-panel-config.json`
-- **任务跳转**：点卡片通过 URL scheme 跳回对应 Agent（codex://、cue:// 等）
-- **完成通知**：任务从执行中变已完成时发系统通知
-- **开机自启**：设置菜单一键开关，通过 LaunchAgent 实现
+- **Live status**: a session file written within the last 120 s = running; a completion marker = done; otherwise idle
+- **Menu bar item**: monochrome template icon with a live running-task count; menu offers show panel / pin / launch-at-login / refresh / quit
+- **Crash-proof data service**: a watchdog health-checks the local API every 5 s and silently relaunches it if it dies
+- **Three-state filters**: click a stat card to filter running / done / idle, click again to clear
+- **Per-agent color dots**: each task carries its agent's accent color, so you can tell sources apart at a glance
+- **Three background modes**: frost → clear → solid; in clear mode the traffic lights and buttons auto-hide and reappear on hover
+- **Pin-to-top**: 📌 keeps the panel floating above everything, including full-screen Spaces
+- **Channel visibility**: ⚙️ toggle which apps appear, saved to `~/.agent-panel-config.json`
+- **Jump back**: click a card to open the agent via its URL scheme (`codex://`, `cue://`, …)
+- **Finish notifications**: a system notification fires when a task transitions running → done
+- **Launch at login**: one toggle in the menu, implemented as a LaunchAgent
 
-## 支持的 Agent
+## Supported apps
 
-| Agent | 状态 | 任务详情 | 数据来源 |
+**Coding agents** (real session detail from local files):
+
+| Agent | Status | Detail | Data source |
 |---|---|---|---|
-| Codex | ✅ 完整 | ✅ 最近对话/进展 | `~/.codex/sessions` JSONL |
-| Claude Code | ✅ 完整 | ✅ 最近回复 | `~/.claude/projects` JSONL |
-| Cue | ✅ 完整 | ✅ 实时工作文本 | `~/Library/Application Support/Cue/SessionStore/sessions.sqlite` |
-| Grok Bot | ✅ 完整 | ✅ 会话最近消息 | `~/Library/Application Support/Grok Bot/sand-client-persistence/*.blob` |
-| Muse | ⚠️ 在线状态 | ❌ 任务在服务端执行 | 进程检测 |
-| ChatGPT | ⚠️ 在线状态 | ❌ 任务在服务端执行 | 进程检测 |
-| Today / Noi | ⚠️ 在线状态 | ❌ 任务在服务端执行 | 进程检测 |
+| Codex | ✅ Full | ✅ recent prompts / progress | `~/.codex/sessions` JSONL |
+| Claude Code | ✅ Full | ✅ recent reply | `~/.claude/projects` JSONL |
+| Cue | ✅ Full | ✅ live working text | `~/Library/Application Support/Cue/SessionStore/sessions.sqlite` |
+| Grok Bot | ✅ Full | ✅ session last message | `~/Library/Application Support/Grok Bot/sand-client-persistence/*.blob` |
 
-完整支持 = 读取本地会话文件，能显示真实任务标题和最近内容。
+**Chat agents** (sessions live on the vendor's servers; the panel can only detect that the app is online):
 
-## 从源码构建
+| Agent | Status | Detail | Data source |
+|---|---|---|---|
+| Muse | ⚠️ Online only | ❌ no local detail | process detection |
+| ChatGPT | ⚠️ Online only | ❌ no local detail | process detection |
+
+**Other AI apps** (monitored as apps, not agents):
+
+| App | Status | Detail | Data source |
+|---|---|---|---|
+| Today | ✅ Real | ✅ last chat title + activity | `~/Library/Application Support/ai.today.macos.app/chat_*.sqlite` |
+| Noi | ⚠️ Online only | ❌ browser, no task concept | process detection |
+
+"Full" = the panel reads local session files and shows real task titles plus recent activity.
+
+## Privacy
+
+The panel only **reads** the paths listed above to infer session state. It never writes to them, never uploads anything, and works fully offline. The only network endpoint is `127.0.0.1:8765` — its own local API.
+
+## Build from source
 
 ```bash
 git clone https://github.com/Jascenn/agent-task-panel.git
@@ -67,38 +87,27 @@ zsh build.sh
 open AgentTaskPanel.app
 ```
 
-要求：macOS 13+，Xcode Command Line Tools（`xcode-select --install`）。
+Requires macOS 13+ and Xcode Command Line Tools (`xcode-select --install`).
 
-也可以直接浏览器打开面板：本地服务运行在 `http://127.0.0.1:8765`，所有数据都留在本机，不上传任何内容。
+You can also open the panel in a browser at `http://127.0.0.1:8765`.
 
-## 配置文件
+## Configuration
 
-`~/.agent-panel-config.json`（面板 ⚙️ 菜单可视化配置）：
+`~/.agent-panel-config.json` (editable via the panel's ⚙️ menu):
 
 ```json
 { "hidden": ["today", "noi"] }
 ```
 
-## 数据读取范围
+## Known limitations
 
-面板只读以下本地路径，用于推断会话状态，不做任何写操作、不上传任何数据：
+- Muse / ChatGPT execute tasks server-side, so only "app online" can be shown — no local task detail exists
+- Session titles come from the first user message; injected system context (AGENTS.md etc.) is filtered out
+- The app is ad-hoc signed; Developer ID signing + notarization is planned once there's an Apple developer account
 
-```
-~/.codex/sessions/
-~/.claude/projects/
-~/Library/Application Support/Cue/SessionStore/
-~/Library/Application Support/Grok Bot/sand-client-persistence/
-```
+## Docs
 
-## 已知限制
-
-- Muse / ChatGPT 等服务端执行的 Agent 只能显示"应用在线"，任务明细在服务端、本地无数据
-- 会话标题取自首条用户消息，注入的系统上下文（AGENTS.md 等）已自动过滤
-- App 暂未做签名和公证（需要 Apple 开发者账号），后续计划接入
-
-## 开发者文档
-
-构建、签名、发布新版本的完整流程见 [docs/BUILD-RELEASE.md](docs/BUILD-RELEASE.md)。
+Build, signing and release workflow: [docs/BUILD-RELEASE.md](docs/BUILD-RELEASE.md) (中文)
 
 ## License
 
