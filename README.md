@@ -23,13 +23,13 @@
 
 ## 安装
 
-1. 从 [Releases](https://github.com/Jascenn/agent-task-panel/releases/latest) 下载 `AgentTaskPanel.zip`，解压
-2. 把 `AgentTaskPanel.app` 拖进「应用程序」文件夹
+1. 从 [Releases](https://github.com/Jascenn/agent-task-panel/releases/latest) 下载 `AgentTaskPanel-v0.2.0.dmg`
+2. 打开 DMG，把 🤖 AgentTaskPanel 拖进旁边的 Applications 文件夹
 3. 首次启动会请求通知权限，允许即可
 
 就这样。本地数据服务随 App 自动启动，菜单栏会出现 🤖 图标，实时显示执行中的任务数。
 
-> App 未签名（自编译无证书），首次打开若提示「无法验证开发者」，请到 系统设置 → 隐私与安全性 → 点「仍要打开」。
+> App 使用 ad-hoc 签名（无付费开发者证书）。首次打开若提示「无法验证开发者」，右键点击 App → 打开，或到 系统设置 → 隐私与安全性 → 点「仍要打开」。
 
 ## 功能
 
