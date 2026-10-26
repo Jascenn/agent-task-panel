@@ -1,0 +1,11 @@
+# Default owner for all changes.
+* @Jascenn
+
+# The native shell, local data service, and bundled UI form one privacy boundary.
+/src/main.swift @Jascenn
+/src/server.py @Jascenn
+/resources/ @Jascenn
+
+# Build, signing, and release changes can alter what users install.
+/scripts/build.sh @Jascenn
+/.github/workflows/ @Jascenn

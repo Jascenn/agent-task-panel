@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Documentation
+- Add repository ownership, dependency-update configuration, and links to the contribution and security policies.
+
 ## [0.2.3] - 2026-10-26
 
 ### Added

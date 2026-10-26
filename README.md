@@ -103,6 +103,8 @@ You can also open the panel in a browser at `http://127.0.0.1:8765`.
 
 Build, signing and release workflow: [docs/dev/BUILD-RELEASE.zh-CN.md](docs/dev/BUILD-RELEASE.zh-CN.md) (中文)
 
+Submission and safety rules: [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md)
+
 ## License
 
 [MIT](LICENSE) © 2026 Jascenn
