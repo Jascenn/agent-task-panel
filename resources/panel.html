@@ -184,7 +184,6 @@ AGENT_NAME["today-intl"] = "Today Intl";
 AGENT_NAME["today-cn"] = "Today CN";
 AGENT_NAME.deepseek = "DeepSeek";
 const STATUS = { running: "执行中", done: "已完成", idle: "空闲" };
-let prev = {};   // key -> status，用于完成提醒
 let pinOn = false;
 
 function ago(ts) {
@@ -203,6 +202,8 @@ async function tick() {
     failCount = 0;
     document.getElementById("list").querySelector(".err")?.remove();
     render(d.tasks);
+    // 服务端下发的 finished 是本轮新完成任务（关窗期间完成的也会在下一次轮询补发）
+    (d.finished || []).forEach(f => notifyDone(f));
     if (d.pin !== pinOn) { pinOn = d.pin; syncPinBtn(); }
   } catch (e) {
     failCount++;
@@ -235,12 +236,6 @@ function render(tasks) {
   const shown = curFilter ? tasks.filter(t => t.status === curFilter) : tasks;
   if (!shown.length) { list.innerHTML = '<div class="empty">' + (curFilter ? "该状态下暂无任务" : "24 小时内暂无 agent 会话") + '</div>'; return; }
   shown.forEach(t => {
-    const key = t.agent + "|" + t.title + "|" + t.mtime;
-    const prevKey = t.agent + "|" + t.title;
-    if (prev[prevKey] === "running" && t.status === "done" && window.webkit?.messageHandlers) {
-      notifyDone(t);
-    }
-    prev[prevKey] = t.status;
     const el = document.createElement("div");
     el.className = "task";
     el.onclick = () => {
@@ -274,9 +269,10 @@ function escapeHtml(s) {
 }
 
 function notifyDone(t) {
+  // finished 条目只有 agent/title；agent 缺 AGENT_NAME 时回退 id
   // 原生壳注册了 webkit message handler 时走系统通知；否则页面内提示
   try {
-    window.webkit.messageHandlers.notify.postMessage(JSON.stringify({ title: AGENT_NAME[t.agent] + " 任务完成", body: t.title }));
+    window.webkit.messageHandlers.notify.postMessage(JSON.stringify({ title: (AGENT_NAME[t.agent] || t.agent) + " 任务完成", body: t.title }));
   } catch (e) {}
 }
 

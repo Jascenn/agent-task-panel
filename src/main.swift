@@ -589,6 +589,25 @@ class NavDelegate: NSObject, WKNavigationDelegate {
         // 同帧导航的 codex:// 等自定义 scheme 也拦截：交给系统打开，避免 WebView 自身导航挂掉
         if let url = navigationAction.request.url,
            !["http", "https", "about", "file"].contains(url.scheme?.lowercased() ?? "") {
+            // today://?bundle=…：多个 App 抢同一 scheme 时用 bundle id 精确路由
+            if let comps = URLComponents(url: url, resolvingAgainstBaseURL: false),
+               let bid = comps.queryItems?.first(where: { $0.name == "bundle" })?.value {
+                var clean = URLComponents(url: url, resolvingAgainstBaseURL: false)!
+                clean.queryItems = nil
+                if let target = URL(string: clean.string ?? url.absoluteString) {
+                    if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bid) {
+                        let config = NSWorkspace.OpenConfiguration()
+                        // open(_:withApplicationAt:) 把 URL 作为待打开资源交给指定 App，
+                        // App 收到的是正常的 URL 事件（等价于 open -a <app> <url>）
+                        NSWorkspace.shared.open([target], withApplicationAt: appURL,
+                                                configuration: config) { _, _ in }
+                    } else {
+                        NSWorkspace.shared.open(target)
+                    }
+                    decisionHandler(.cancel)
+                    return
+                }
+            }
             NSWorkspace.shared.open(url)
             decisionHandler(.cancel)
             return
