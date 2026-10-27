@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2026-10-27
+
+### Added
+- Click-through mode: the panel no longer swallows clicks when you are working in another app.
+  Three-state pointer policy (`passthrough` / `armed` / `active`): passes clicks through by
+  default, fades to 12% while the pointer crosses it (still passing through), and only becomes
+  interactive when explicitly summoned.
+- Global hotkey `⌥⌘A` to make the panel interactive / return it to click-through. Registered via
+  Carbon `RegisterEventHotKey`, so it needs no Accessibility permission.
+- Menu bar items: "Make panel interactive (⌥⌘A)" and "Auto yield (stay out of the way)". The menu
+  bar icon switches between filled (interactive) and dimmed (click-through).
+- `.stationary` collection behavior so the panel no longer slides with Space switches.
+
+### Fixed
+- **Settings were never persisted.** `UserDefaults(suiteName:)` was passed the app's own bundle
+  identifier, which macOS ignores ("Using your own bundle identifier as an NSUserDefaults suite
+  name does not make sense and will not work"). This silently broke *Launch at login* too. Now
+  uses `UserDefaults.standard`.
+- Timers driving the pointer state machine never fired while the pointer hovered the panel:
+  `Timer.scheduledTimer` runs in the default run loop mode, which is suspended in event-tracking
+  mode. Timers are now added to `.common`.
+- Panel could get stuck at ~0.3 alpha ("visible but unclickable") when two `NSAnimationContext`
+  animations overlapped. Alpha is now assigned directly instead of animated.
+- Occasional (~1 in 20) failure when summoning the panel with the hotkey: window properties were
+  written before the state changed, letting a concurrent mouse event revert them. State is now
+  switched first, and all property writes go through `applyActive()` / `applyPassthrough()`.
+
 ## [0.2.3] - 2026-10-26
 
 ### Added
