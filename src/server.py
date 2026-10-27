@@ -14,8 +14,11 @@ CONFIG_PATH = os.path.join(HOME, ".agent-panel-config.json")
 ACTIVE_WINDOW = 120      # 秒内有写入视为执行中
 SCAN_AGE = 24 * 3600     # 只看 24 小时内的会话
 _cache = {"data": [], "mtime": 0.0}   # 短缓存，避免轮询间隔重复扫描
+# 完成通知：服务端对比 running→done，避免面板关窗时 WKWebView 节流漏发
+_prev_status = {}
+
 # 增量缓存：文件路径 -> (mtime, 解析结果)；未变化的文件直接复用
-_file_cache = {"codex": {}, "claude": {}}
+_file_cache = {"codex": {}, "claude": {}, "dsh": {}}
 
 def first_text(text):
     return re.sub(r"\s+", " ", str(text)).strip()[:60]
@@ -218,18 +221,23 @@ def scan_apps():
             agent_id = "today-intl" if today_split else "today"
             display = "Today Intl" if today_split else "Today"
             out.append({"agent": agent_id, "title": today_title or "今日助手", "cwd": "",
-                        "status": status, "mtime": today_mtime, "link": link})
+                        "status": status, "mtime": today_mtime,
+                        # 两个版本都注册 today://，点击必须带 bundle id 才能落到正确 App
+                        "link": "today://" if not today_split else "today://?bundle=ai.today.macos.app"})
         else:
             if proc == "Today 2":
                 agent_id, display = ("today-cn", "Today CN") if today_split else ("today", "Today")
+                # 单版本时装的是哪个就是哪个：Today 2 存在则 bundle 固定
+                today_link = "today://?bundle=ai.today.macos.app.cn"
             else:
                 agent_id = proc.lower().replace(" ", "-")
                 display = name
+                today_link = link
             # 无本地明细的 app 型 agent：任务在服务端执行，本地只能确认进程活跃
             # 状态用 running 表示"应用在线"，副标题注明数据边界，避免伪造空闲/完成
             out.append({"agent": agent_id, "title": f"{display} 运行中", "cwd": "",
                         "status": "running", "mtime": time.time(),
-                        "link": link, "recent": "应用在线 · 无本地任务明细", "recent_at": ""})
+                        "link": today_link, "recent": "应用在线 · 无本地任务明细", "recent_at": ""})
     # Cue / Grok 有本地明细：扫描真实会话（进程退出后 24h 记录仍可见）
     out.extend(scan_cue())
     out.extend(scan_grok())
@@ -253,6 +261,10 @@ def scan_dsh():
     for f in glob.glob(os.path.join(DSH_DIR, "*", "*", "session.v4.jsonl.zstd")):
         mtime = os.path.getmtime(f)
         if now - mtime > SCAN_AGE:
+            continue
+        cached = _file_cache["dsh"].get(f)
+        if cached and cached[0] == mtime:
+            out.append(cached[1])
             continue
         title, recent = None, ""
         try:
@@ -278,10 +290,13 @@ def scan_dsh():
                     recent = first_text(txt)
         if not (title or recent):
             continue
-        out.append({"agent": "deepseek", "title": title or recent or "DeepSeek 会话",
-                    "cwd": "", "status": "running" if now - mtime < ACTIVE_WINDOW else "done",
-                    "mtime": mtime, "link": "dsh://",
-                    "recent": recent if title else "", "recent_at": ""})
+        # 状态在读取时计算，缓存里存的是快照；mtime 未变则状态也不会变
+        task = {"agent": "deepseek", "title": title or recent or "DeepSeek 会话",
+                "cwd": "", "status": "running" if now - mtime < ACTIVE_WINDOW else "done",
+                "mtime": mtime, "link": "dsh://",
+                "recent": recent if title else "", "recent_at": ""}
+        _file_cache["dsh"][f] = (mtime, task)
+        out.append(task)
     return out
 
 def parse_codex_file(f):
@@ -435,7 +450,21 @@ def tasks():
         _cache["mtime"] = now
         data = all_t
     hidden = set(load_config().get("hidden", []))
-    return [t for t in data if t["agent"] not in hidden]
+    visible = [t for t in data if t["agent"] not in hidden]
+    # 状态对比用全量数据（隐藏渠道也该发完成通知）
+    now_key = {}
+    for t in data:
+        now_key[t["agent"] + "|" + t["title"]] = t["status"]
+    finished = []
+    for k, st in _prev_status.items():
+        if st == "running" and now_key.get(k) == "done":
+            agent = k.split("|", 1)[0]
+            title = k.split("|", 1)[1]
+            if agent not in hidden:
+                finished.append({"agent": agent, "title": title})
+    _prev_status.clear()
+    _prev_status.update(now_key)
+    return {"tasks": visible, "finished": finished}
 
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):
@@ -453,7 +482,8 @@ class Handler(BaseHTTPRequestHandler):
             with open(HTML_PATH, "rb") as fh:
                 self._send(200, fh.read().decode("utf-8"), ctype="text/html; charset=utf-8")
         elif path == "/api/tasks":
-            self._send(200, json.dumps({"tasks": tasks(), "pin": os.path.exists(PIN_FLAG)}))
+            result = tasks()
+            self._send(200, json.dumps({**result, "pin": os.path.exists(PIN_FLAG)}))
         elif path == "/api/config":
             self._send(200, json.dumps({"agents": ALL_AGENTS, **load_config()}))
         else:
