@@ -53,7 +53,7 @@
 - **渠道色点全覆盖**：每个渠道都有专属色（含 Codex 青绿、Claude Code 橙），执行中闪烁不再覆盖渠道色
 - **新增 DeepSeek Harness**：从 `~/.dsh/sessions` 读取真实会话标题 + 首条用户消息
 - **Today Intl / Today CN**：两个版本同时运行时分开显示；只装一个就统称 Today
-- 移除 Noi / Dayflow / Mole（是工具不是 agent）
+- 渠道列表移除 Noi（浏览器壳不是 agent），并清理 Dayflow / Mole 的孤儿样式
 
 → 完整历史：[CHANGELOG.md](CHANGELOG.md)
 
