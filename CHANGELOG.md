@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-10-28
+
+### Added
+- `/api/tasks` now returns a `finished` array: the server detects running→done transitions
+  (including while the panel window is closed) and delivers each one exactly once.
+
+### Changed
+- Finish notifications are triggered server-side instead of in the front end. WKWebView throttles
+  background JS timers, so the old client-side diff silently dropped notifications whenever the
+  panel window was hidden.
+
+### Fixed
+- DeepSeek session scanning now caches parsed snapshots keyed by file mtime (same as Codex and
+  Claude Code) instead of decompressing every zstd file on every 3 s poll.
+- Clicking a Today card now routes to the exact app when both builds are installed: the link
+  carries `?bundle=<bundle-id>` and the Swift shell opens it with
+  `NSWorkspace.open(_:withApplicationAt:)` instead of letting macOS guess among apps registered
+  for the `today://` scheme.
+
 ## [0.3.1] - 2026-10-28
 
 ### Added

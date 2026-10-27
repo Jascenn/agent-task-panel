@@ -48,12 +48,11 @@
 - **完成通知**：任务从执行中变已完成时发系统通知
 - **开机自启**：菜单一键开关，通过 LaunchAgent 实现
 
-## v0.3.1 更新
+## v0.3.2 更新
 
-- **渠道色点全覆盖**：每个渠道都有专属色（含 Codex 青绿、Claude Code 橙），执行中闪烁不再覆盖渠道色
-- **新增 DeepSeek Harness**：从 `~/.dsh/sessions` 读取真实会话标题 + 首条用户消息
-- **Today Intl / Today CN**：两个版本同时运行时分开显示；只装一个就统称 Today
-- 渠道列表移除 Noi（浏览器壳不是 agent），并清理 Dayflow / Mole 的孤儿样式
+- **完成通知更可靠**：服务端检测 running→done 并保证只发一次，面板隐藏时不再漏通知
+- **修复 Today 跳转**：同时装两个版本时，点卡片精确打开对应的 Intl / CN 版本
+- **轮询更省电**：DeepSeek 会话按文件 mtime 缓存，不再每 3 秒全量解压
 
 → 完整历史：[CHANGELOG.md](CHANGELOG.md)
 
