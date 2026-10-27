@@ -4,8 +4,25 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-### Documentation
-- Add repository ownership, dependency-update configuration, and links to the contribution and security policies.
+## [0.3.1] - 2026-10-28
+
+### Added
+- Per-agent accent colors on task dots now cover every channel, including Codex (teal) and
+  Claude Code (brand orange). The running-state blink is driven by the status class, so it
+  survives per-channel overrides, and unknown agents fall back to gray instead of invisible.
+- DeepSeek Harness support: sessions are read from `~/.dsh/sessions` (zstd-compressed v4 JSONL).
+  The panel shows the LLM session title plus the first real user message; a session written to
+  within 120 s counts as running.
+- Today channel splitting: when both `Today.app` and `Today 2.app` (the CN build) are running the
+  panel shows **Today Intl** and **Today CN** with distinct colors; with only one installed the
+  channel is simply **Today**.
+
+### Changed
+- Noi, Dayflow and Mole were removed from the channel list — they are tools, not agents, and only
+  produced meaningless "app online" rows.
+
+### Fixed
+- Dayflow / Mole display-name mappings were missing from the front end.
 
 ## [0.3.0] - 2026-10-27
 

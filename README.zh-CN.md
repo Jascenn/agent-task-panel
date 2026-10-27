@@ -48,6 +48,15 @@
 - **完成通知**：任务从执行中变已完成时发系统通知
 - **开机自启**：菜单一键开关，通过 LaunchAgent 实现
 
+## v0.3.1 更新
+
+- **渠道色点全覆盖**：每个渠道都有专属色（含 Codex 青绿、Claude Code 橙），执行中闪烁不再覆盖渠道色
+- **新增 DeepSeek Harness**：从 `~/.dsh/sessions` 读取真实会话标题 + 首条用户消息
+- **Today Intl / Today CN**：两个版本同时运行时分开显示；只装一个就统称 Today
+- 移除 Noi / Dayflow / Mole（是工具不是 agent）
+
+→ 完整历史：[CHANGELOG.md](CHANGELOG.md)
+
 ## 支持的 App
 
 **编程 Agent**（读取本地会话文件，展示真实明细）：
@@ -56,6 +65,7 @@
 |---|---|---|---|
 | Codex | ✅ 完整 | ✅ 最近对话/进展 | `~/.codex/sessions` JSONL |
 | Claude Code | ✅ 完整 | ✅ 最近回复 | `~/.claude/projects` JSONL |
+| DeepSeek Harness | ✅ 完整 | ✅ 会话标题 + 首条提问 | `~/.dsh/sessions` zstd JSONL |
 | Cue | ✅ 完整 | ✅ 实时工作文本 | `~/Library/Application Support/Cue/SessionStore/sessions.sqlite` |
 | Grok Bot | ✅ 完整 | ✅ 会话最近消息 | `~/Library/Application Support/Grok Bot/sand-client-persistence/*.blob` |
 
@@ -64,6 +74,7 @@
 | Agent | 状态 | 任务详情 | 数据来源 |
 |---|---|---|---|
 | Today | ✅ 完整 | ✅ 最近聊天标题 + 活跃度 | `~/Library/Application Support/ai.today.macos.app/chat_*.sqlite` |
+| Today CN | ✅ 完整 | ✅ 最近聊天标题 + 活跃度 | `Today 2.app`（同结构，国内版） |
 | Muse | ⚠️ 仅在线 | ❌ 任务在厂商服务端执行 | 进程检测 |
 | ChatGPT | ⚠️ 仅在线 | ❌ 任务在厂商服务端执行 | 进程检测 |
 
