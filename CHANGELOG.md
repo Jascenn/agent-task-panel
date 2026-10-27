@@ -18,11 +18,13 @@ All notable changes to this project will be documented in this file.
   channel is simply **Today**.
 
 ### Changed
-- Noi, Dayflow and Mole were removed from the channel list — they are tools, not agents, and only
-  produced meaningless "app online" rows.
+- Noi was removed from the channel list — it is a browser shell, not an agent, and only produced
+  a meaningless "app online" row. Orphan Dayflow / Mole CSS rules (never real channels) were
+  dropped from the front end.
 
 ### Fixed
-- Dayflow / Mole display-name mappings were missing from the front end.
+- Dayflow / Mole display-name mappings that had leaked into the front end were removed along with
+  their orphan styles.
 
 ## [0.3.0] - 2026-10-27
 
