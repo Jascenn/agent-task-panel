@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Documentation
+- Add repository ownership, dependency-update configuration, and links to the contribution and security policies.
+
 ## [0.3.0] - 2026-10-27
 
 ### Added
@@ -28,6 +33,7 @@ All notable changes to this project will be documented in this file.
 - Occasional (~1 in 20) failure when summoning the panel with the hotkey: window properties were
   written before the state changed, letting a concurrent mouse event revert them. State is now
   switched first, and all property writes go through `applyActive()` / `applyPassthrough()`.
+
 
 ## [0.2.3] - 2026-10-26
 

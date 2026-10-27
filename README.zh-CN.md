@@ -104,6 +104,8 @@ open AgentTaskPanel.app
 
 构建、签名、发布流程见 [docs/dev/BUILD-RELEASE.zh-CN.md](docs/dev/BUILD-RELEASE.zh-CN.md)。
 
+提交与安全规则见 [CONTRIBUTING.md](CONTRIBUTING.md) 和 [SECURITY.md](SECURITY.md)。
+
 ## License
 
 [MIT](LICENSE) © 2026 Jascenn
