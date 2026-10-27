@@ -41,6 +41,7 @@ The local data service starts with the app, and a 🤖 menu bar item shows how m
 - **Three-state filters**: click a stat card to filter running / done / idle, click again to clear
 - **Per-agent color dots**: each task carries its agent's accent color, so you can tell sources apart at a glance
 - **Three background modes**: frost → clear → solid; in clear mode the traffic lights and buttons auto-hide and reappear on hover
+- **Click-through by default**: the panel never eats your clicks. Hovering it fades to 12% and still passes clicks through; press ⌥⌘A (or the menu bar item) to make it interactive, and it returns to click-through 1.2 s after the pointer leaves
 - **Pin-to-top**: 📌 keeps the panel floating above everything, including full-screen Spaces
 - **Channel visibility**: ⚙️ toggle which apps appear, saved to `~/.agent-panel-config.json`
 - **Jump back**: click a card to open the agent via its URL scheme (`codex://`, `cue://`, …)
