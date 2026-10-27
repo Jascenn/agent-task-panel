@@ -8,6 +8,7 @@ HTML_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "agent-task
 HOME = os.path.expanduser("~")
 CODEX_DIR = os.path.join(HOME, ".codex/sessions")
 CLAUDE_DIR = os.path.join(HOME, ".claude/projects")
+DSH_DIR = os.path.join(HOME, ".dsh/sessions")
 PIN_FLAG = os.path.join(HOME, ".agent-panel-pin")
 CONFIG_PATH = os.path.join(HOME, ".agent-panel-config.json")
 ACTIVE_WINDOW = 120      # 秒内有写入视为执行中
@@ -47,13 +48,14 @@ def clean_title(text):
 
 # ============ App 型 agent ============
 # 进程名 -> (显示名, deep link, 是否有本地明细)
+# Today 两个版本：进程名 Today 2 = 国内版；两个同时在跑才区分 id，单独在跑统称 today
 APP_AGENTS = {
     "ChatGPT": ("ChatGPT", "codex://", False),
     "Grok Bot": ("Grok Bot", "sand://", False),
     "Muse": ("Muse", "hatch://", False),
     "Cue": ("Cue", "cue://", True),
     "Today": ("Today", "today://", True),
-    "Noi": ("Noi", "noi://", False),
+    "Today 2": ("Today 国内", "today://", False),
 }
 
 # 全渠道清单（配置面板用）：即使当前无任务也应可配置
@@ -64,8 +66,10 @@ ALL_AGENTS = [
     {"id": "grok-bot", "name": "Grok Bot"},
     {"id": "muse", "name": "Muse"},
     {"id": "cue", "name": "Cue"},
-    {"id": "today", "name": "Today"},
-    {"id": "noi", "name": "Noi"},
+    {"id": "today", "name": "Today（单版本时）"},
+    {"id": "today-intl", "name": "Today Intl"},
+    {"id": "today-cn", "name": "Today CN"},
+    {"id": "deepseek", "name": "DeepSeek Harness"},
 ]
 
 def proc_alive(name):
@@ -175,6 +179,9 @@ def scan_grok():
 
 def scan_apps():
     out = []
+    today_intl_alive = proc_alive("Today")
+    today_cn_alive = proc_alive("Today 2")
+    today_split = today_intl_alive and today_cn_alive
     # Today: chat sqlite 最近活动（文件名含设备 hash，动态发现）
     today_dbs = sorted(
         glob.glob(os.path.expanduser(
@@ -208,12 +215,19 @@ def scan_apps():
         if proc == "Today" and today_mtime:
             age = time.time() - today_mtime
             status = "running" if age < ACTIVE_WINDOW else ("done" if today_title else "idle")
-            out.append({"agent": "today", "title": today_title or "今日助手", "cwd": "",
+            agent_id = "today-intl" if today_split else "today"
+            display = "Today Intl" if today_split else "Today"
+            out.append({"agent": agent_id, "title": today_title or "今日助手", "cwd": "",
                         "status": status, "mtime": today_mtime, "link": link})
         else:
+            if proc == "Today 2":
+                agent_id, display = ("today-cn", "Today CN") if today_split else ("today", "Today")
+            else:
+                agent_id = proc.lower().replace(" ", "-")
+                display = name
             # 无本地明细的 app 型 agent：任务在服务端执行，本地只能确认进程活跃
             # 状态用 running 表示"应用在线"，副标题注明数据边界，避免伪造空闲/完成
-            out.append({"agent": proc.lower().replace(" ", "-"), "title": f"{name} 运行中", "cwd": "",
+            out.append({"agent": agent_id, "title": f"{display} 运行中", "cwd": "",
                         "status": "running", "mtime": time.time(),
                         "link": link, "recent": "应用在线 · 无本地任务明细", "recent_at": ""})
     # Cue / Grok 有本地明细：扫描真实会话（进程退出后 24h 记录仍可见）
@@ -222,6 +236,52 @@ def scan_apps():
     # 有真实明细的渠道去掉"应用在线"占位条目，避免重复
     scanned = {t["agent"] for t in out if t.get("recent") != "应用在线 · 无本地任务明细"}
     out = [t for t in out if t["agent"] not in scanned or t.get("recent") != "应用在线 · 无本地任务明细"]
+    return out
+
+
+def _dsh_proc_alive():
+    # 主进程名带空格，pgrep -x 匹配不到；按路径匹配
+    r = subprocess.run(["pgrep", "-f", "DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness$"],
+                       capture_output=True)
+    return r.returncode == 0
+
+
+def scan_dsh():
+    # DeepSeek Harness 会话：zstd 压缩的 v4 jsonl；mtime 在 ACTIVE_WINDOW 内 = 执行中
+    out = []
+    now = time.time()
+    for f in glob.glob(os.path.join(DSH_DIR, "*", "*", "session.v4.jsonl.zstd")):
+        mtime = os.path.getmtime(f)
+        if now - mtime > SCAN_AGE:
+            continue
+        title, recent = None, ""
+        try:
+            raw = subprocess.run(["zstd", "-dc", f], capture_output=True, timeout=10).stdout
+        except Exception:
+            raw = b""
+        for line in raw.decode("utf-8", "ignore").splitlines():
+            head = line[:600]
+            if not ('"session/title"' in head or '"user/message"' in head):
+                continue
+            try:
+                j = json.loads(line)
+            except Exception:
+                continue
+            t, d = j.get("type"), j.get("data") or {}
+            if t == "session/title" and not title and d.get("title"):
+                title = first_text(d["title"])
+            elif t == "user/message" and not recent:
+                parts = d.get("content") or [{}]
+                txt = parts[0].get("text", "") if isinstance(parts[0], dict) else ""
+                # 跳过运行时上下文/系统注入的伪用户消息
+                if txt and not txt.startswith(("<", "Current runtime", "Current DSH")):
+                    recent = first_text(txt)
+        if not (title or recent):
+            continue
+        out.append({"agent": "deepseek", "title": title or recent or "DeepSeek 会话",
+                    "cwd": "", "status": "running" if now - mtime < ACTIVE_WINDOW else "done",
+                    "mtime": mtime, "link": "dsh://",
+                    "recent": recent if title else "", "recent_at": ""})
     return out
 
 def parse_codex_file(f):
@@ -369,7 +429,7 @@ def tasks():
     if now - _cache["mtime"] < 3:
         data = _cache["data"]
     else:
-        all_t = scan_codex() + scan_claude() + scan_apps()
+        all_t = scan_codex() + scan_claude() + scan_apps() + scan_dsh()
         all_t.sort(key=lambda x: -x["mtime"])
         _cache["data"] = all_t
         _cache["mtime"] = now
