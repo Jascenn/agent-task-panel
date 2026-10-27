@@ -65,11 +65,38 @@ vim CHANGELOG.md
 
 ### 2. 提交代码并打 tag
 
-```bash
-git add -A
-git commit -m "Release v0.X.Y: <一句话说明>"
-git push origin main
+> ⚠️ **`main` is a protected branch.** Direct pushes are rejected — even for admins
+> (`enforce_admins: true`). All changes must land through a pull request whose `build`
+> check passes. Push directly and you will see:
+>
+> ```
+> ! [remote rejected] main -> main (protected branch hook declined)
+> remote: - Required status check "build" is expected.
+> ```
 
+```bash
+# 1. Work on a branch — never on main
+git checkout -b feat/<short-description>
+
+git add -A
+git commit -m "feat: <一句话说明>"
+git push -u origin feat/<short-description>
+
+# 2. Open a PR and let CI build it (~10-15s)
+gh pr create --title "..." --body "..."
+gh pr checks <PR-number>
+
+# 3. Squash merge and delete the branch
+gh pr merge <PR-number> --squash --delete-branch
+
+# 4. Realign local main. A squash merge rewrites history, so local main will
+#    diverge (ahead 2, behind 1). Use --soft: never --hard, which would
+#    discard uncommitted work in the working tree.
+git checkout main
+git fetch origin
+git reset --soft origin/main
+
+# 5. Tag the merged commit to trigger the release workflow
 git tag v0.X.Y
 git push origin v0.X.Y
 ```
