@@ -48,6 +48,15 @@ The local data service starts with the app, and a 🤖 menu bar item shows how m
 - **Finish notifications**: a system notification fires when a task transitions running → done
 - **Launch at login**: one toggle in the menu, implemented as a LaunchAgent
 
+## What's new in v0.3.1
+
+- **Per-agent color dots everywhere**: every channel has its own accent color (incl. Codex teal, Claude Code orange); the running blink no longer overrides it
+- **DeepSeek Harness**: real session titles + first user message from `~/.dsh/sessions`
+- **Today Intl / Today CN**: shown separately when both builds run; just "Today" with a single install
+- Removed Noi / Dayflow / Mole (tools, not agents)
+
+→ Full history: [CHANGELOG.md](CHANGELOG.md)
+
 ## Supported apps
 
 **Coding agents** (real session detail from local files):
@@ -56,6 +65,7 @@ The local data service starts with the app, and a 🤖 menu bar item shows how m
 |---|---|---|---|
 | Codex | ✅ Full | ✅ recent prompts / progress | `~/.codex/sessions` JSONL |
 | Claude Code | ✅ Full | ✅ recent reply | `~/.claude/projects` JSONL |
+| DeepSeek Harness | ✅ Full | ✅ session title + first prompt | `~/.dsh/sessions` zstd JSONL |
 | Cue | ✅ Full | ✅ live working text | `~/Library/Application Support/Cue/SessionStore/sessions.sqlite` |
 | Grok Bot | ✅ Full | ✅ session last message | `~/Library/Application Support/Grok Bot/sand-client-persistence/*.blob` |
 
@@ -64,6 +74,7 @@ The local data service starts with the app, and a 🤖 menu bar item shows how m
 | Agent | Status | Detail | Data source |
 |---|---|---|---|
 | Today | ✅ Full | ✅ last chat title + activity | `~/Library/Application Support/ai.today.macos.app/chat_*.sqlite` |
+| Today CN | ✅ Full | ✅ last chat title + activity | `Today 2.app` (same schema, CN build) |
 | Muse | ⚠️ Online only | ❌ sessions live on the vendor's server | process detection |
 | ChatGPT | ⚠️ Online only | ❌ sessions live on the vendor's server | process detection |
 
