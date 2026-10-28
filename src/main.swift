@@ -653,8 +653,38 @@ class PinWatcher {
     }
 }
 
-// 拉起本地数据服务（bundle 内的 server.py），已运行则跳过
-func startServer() {
+// server.py 的 FNV-1a 指纹，与 Python 侧 build_id() 同算法。
+// 用来识别端口上跑的是不是当前这份代码——重装后旧进程还占着 8765 时，
+// 只探"端口通不通"会让面板静默显示旧数据。
+func serverFileBuildID() -> String {
+    guard let py = Bundle.main.url(forResource: "server", withExtension: "py"),
+          let data = try? Data(contentsOf: py) else { return "0" }
+    var h: UInt64 = 0xcbf29ce484222325
+    for byte in data {
+        h = (h ^ UInt64(byte)) &* 0x100000001b3
+    }
+    return String(format: "%016llx", h)
+}
+
+// 探测端口上的服务并返回 (是否响应, 对端 build id)
+func probeServer() -> (ok: Bool, build: String) {
+    let semaphore = DispatchSemaphore(value: 0)
+    var ok = false
+    var build = ""
+    URLSession.shared.dataTask(with: URL(string: "http://127.0.0.1:8765/api/health")!) { data, r, _ in
+        if (r as? HTTPURLResponse)?.statusCode == 200, let data,
+           let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            ok = true
+            build = (j["build"] as? String) ?? ""
+        }
+        semaphore.signal()
+    }.resume()
+    _ = semaphore.wait(timeout: .now() + 1)
+    return (ok, build)
+}
+
+// 端口上是否有任何本项目的服务在应答（兼容 0.3.2 及更早版本：没有 /api/health）
+func legacyServerResponding() -> Bool {
     let semaphore = DispatchSemaphore(value: 0)
     var ok = false
     URLSession.shared.dataTask(with: URL(string: "http://127.0.0.1:8765/api/tasks")!) { _, r, _ in
@@ -662,11 +692,62 @@ func startServer() {
         semaphore.signal()
     }.resume()
     _ = semaphore.wait(timeout: .now() + 1)
-    if ok { return }
+    return ok
+}
+
+// 杀掉旧的本地数据服务。
+// 优先用 pidfile；老版本不写 pidfile，则回退到"查监听 8765 的进程"，
+// 且只杀命令行里确实是本项目 server.py 的进程，避免误伤别的服务。
+func killStaleServer() {
+    let pidPath = NSHomeDirectory() + "/.agent-panel-server.pid"
+    var killed = false
+    if let raw = try? String(contentsOfFile: pidPath, encoding: .utf8),
+       let pid = Int32(raw.trimmingCharacters(in: .whitespacesAndNewlines)), pid > 0 {
+        // PID 可能已被系统复用：确认命令行确实是本项目的 server.py 再杀
+        if let cmd = try? runProcess("/bin/ps", ["-o", "command=", "-p", "\(pid)"]),
+           cmd.contains("AgentTaskPanel.app/Contents/Resources/server.py") {
+            killed = kill(pid, SIGTERM) == 0
+        }
+    }
+    if !killed, let out = try? runProcess("/usr/sbin/lsof", ["-ti", "tcp:8765"]) {
+        for line in out.split(separator: "\n") {
+            guard let pid = Int32(line.trimmingCharacters(in: .whitespaces)) else { continue }
+            guard let cmd = try? runProcess("/bin/ps", ["-o", "command=", "-p", "\(pid)"]),
+                  cmd.contains("AgentTaskPanel.app/Contents/Resources/server.py") else { continue }
+            kill(pid, SIGTERM)
+        }
+    }
+    usleep(400_000)
+}
+
+func runProcess(_ path: String, _ args: [String]) throws -> String {
+    let proc = Process()
+    proc.executableURL = URL(fileURLWithPath: path)
+    proc.arguments = args
+    let pipe = Pipe()
+    proc.standardOutput = pipe
+    try proc.run()
+    proc.waitUntilExit()
+    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+    return String(data: data, encoding: .utf8) ?? ""
+}
+
+// 拉起本地数据服务（bundle 内的 server.py），已运行则跳过
+func startServer() {
+    let mine = serverFileBuildID()
+    let probe = probeServer()
+    if probe.ok {
+        if probe.build == mine { return }
+        // 端口上是旧版本的服务：先清掉，否则面板会一直显示旧数据
+        killStaleServer()
+    } else if legacyServerResponding() {
+        // 老版本没有 /api/health，但确实在应答：同样要清掉
+        killStaleServer()
+    }
     guard let py = Bundle.main.url(forResource: "server", withExtension: "py") else { return }
     let proc = Process()
     proc.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
-    proc.arguments = [py.path]
+    proc.arguments = [py.path, "--build", mine]
     try? proc.run()
 }
 
@@ -677,21 +758,15 @@ class ServerKeeper {
     var restarting = false
 
     static func probe() -> Bool {
-        let semaphore = DispatchSemaphore(value: 0)
-        var ok = false
-        URLSession.shared.dataTask(with: URL(string: "http://127.0.0.1:8765/api/tasks")!) { _, r, _ in
-            ok = (r as? HTTPURLResponse)?.statusCode == 200
-            semaphore.signal()
-        }.resume()
-        _ = semaphore.wait(timeout: .now() + 2)
-        return ok
+        let p = probeServer()
+        return p.ok && p.build == serverFileBuildID()
     }
 
     static func launch() {
         guard let py = Bundle.main.url(forResource: "server", withExtension: "py") else { return }
         let proc = Process()
         proc.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
-        proc.arguments = [py.path]
+        proc.arguments = [py.path, "--build", serverFileBuildID()]
         try? proc.run()
     }
 
@@ -700,6 +775,8 @@ class ServerKeeper {
             guard let self, !self.restarting else { return }
             if ServerKeeper.probe() { return }
             self.restarting = true
+            // 端口上可能是旧版本的进程：先清理再拉起，避免永远探测失败循环
+            if probeServer().ok || legacyServerResponding() { killStaleServer() }
             ServerKeeper.launch()
             // 给服务 3 秒就绪窗口，期间跳过检查避免重复拉起
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in

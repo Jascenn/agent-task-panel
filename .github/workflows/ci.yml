@@ -21,5 +21,13 @@ jobs:
           test -f AgentTaskPanel.app/Contents/Resources/agent-task-dashboard.html
           codesign --verify --deep AgentTaskPanel.app
 
+      - name: Verify universal binary and minimum macOS
+        run: |
+          BIN=AgentTaskPanel.app/Contents/MacOS/AgentTaskPanel
+          lipo -archs "$BIN"
+          lipo -archs "$BIN" | grep -q arm64
+          lipo -archs "$BIN" | grep -q x86_64
+          xcrun vtool -show-build "$BIN" | grep -q "minos 12.0"
+
       - name: Python syntax check
         run: python3 -m py_compile src/server.py

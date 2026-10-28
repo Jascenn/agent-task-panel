@@ -13,7 +13,7 @@ you get a notification when a task finishes, and clicking a card jumps straight 
 [![Release](https://img.shields.io/github/v/release/Jascenn/agent-task-panel?label=release&color=111111)](https://github.com/Jascenn/agent-task-panel/releases/latest)
 [![Stars](https://img.shields.io/github/stars/Jascenn/agent-task-panel?style=flat&color=111111)](https://github.com/Jascenn/agent-task-panel/stargazers)
 [![License](https://img.shields.io/badge/license-MIT-111111)](LICENSE)
-![macOS](https://img.shields.io/badge/macOS-13%2B-000000?logo=apple&logoColor=white)
+![macOS](https://img.shields.io/badge/macOS-12%2B-000000?logo=apple&logoColor=white)
 
 **[Download](https://github.com/Jascenn/agent-task-panel/releases/latest)** · [Features](#features) · [Supported apps](#supported-apps) · [Build from source](#build-from-source) · [简体中文](README.zh-CN.md)
 
@@ -48,11 +48,12 @@ The local data service starts with the app, and a 🤖 menu bar item shows how m
 - **Finish notifications**: a system notification fires when a task transitions running → done
 - **Launch at login**: one toggle in the menu, implemented as a LaunchAgent
 
-## What's new in v0.3.2
+## What's new in v0.3.3
 
-- **Reliable finish notifications**: the server now detects running→done transitions and delivers them exactly once — no more missed notifications while the panel is hidden
-- **Today card routing fixed**: with both Today builds installed, clicking a card opens the right one (Intl vs CN) via its bundle id
-- **Lighter polling**: DeepSeek sessions are cached by file mtime instead of re-decompressing on every refresh
+- **Accurate status**: each agent's own turn boundaries decide running / done / idle — no more 120-second guesswork that reported long builds as finished
+- **No more phantom tasks**: Claude Code sub-agent transcripts and workflow-harness sessions are filtered out
+- **Universal build**: one DMG runs on Apple Silicon and Intel, minimum macOS 12
+- **No stale data after upgrade**: the panel detects a leftover server from the previous version and replaces it
 
 → Full history: [CHANGELOG.md](CHANGELOG.md)
 
@@ -92,7 +93,7 @@ zsh scripts/build.sh
 open AgentTaskPanel.app
 ```
 
-Requires macOS 13+ and Xcode Command Line Tools (`xcode-select --install`).
+Requires macOS 12+ (Apple Silicon or Intel) and Xcode Command Line Tools (`xcode-select --install`).
 
 You can also open the panel in a browser at `http://127.0.0.1:8765`.
 
