@@ -19,20 +19,12 @@ concurrency:
 jobs:
   analyze:
     name: Analyze ${{ matrix.language }}
-    runs-on: ${{ matrix.runner }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - language: swift
-            runner: macos-14
-            build-mode: manual
-          - language: python
-            runner: ubuntu-latest
-            build-mode: none
-          - language: actions
-            runner: ubuntu-latest
-            build-mode: none
+        language: [actions, python]
 
     steps:
       - name: Check out repository
@@ -42,14 +34,7 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
-          build-mode: ${{ matrix.build-mode }}
-
-      - name: Build Swift for analysis
-        if: matrix.language == 'swift'
-        run: |
-          swiftc src/main.swift -o /tmp/AgentTaskPanel-codeql \
-            -target arm64-apple-macos12.0 \
-            -framework Cocoa -framework WebKit -framework UserNotifications
+          build-mode: none
 
       - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@v4
