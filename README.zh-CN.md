@@ -97,6 +97,13 @@ open AgentTaskPanel.app
 
 也可以直接浏览器打开面板：`http://127.0.0.1:8765`。
 
+## 官网自动部署
+
+`docs/` 目录的改动合并到 `main` 后，会通过 GitHub Actions 自动部署到 Cloudflare Pages。
+工作流位于 `.github/workflows/deploy-pages.yml`，使用仅限 Cloudflare Pages 的 API Token
+（GitHub Secret：`CLOUDFLARE_API_TOKEN`）和账户 ID（GitHub Variable：
+`CLOUDFLARE_ACCOUNT_ID`），仓库内不会保存任何 Cloudflare 凭据。
+
 ## 配置文件
 
 `~/.agent-panel-config.json`（面板 ⚙️ 菜单可视化配置）：
