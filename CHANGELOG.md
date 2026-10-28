@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Public project website with a product overview, agent support matrix, installation guide,
   and an interactive clear-mode preview.
+- Search discovery files and Cloudflare Pages security/cache headers for the public website.
 
 ## [0.3.3] - 2026-10-28
 
