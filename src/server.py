@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # 本地任务聚合服务：扫描 Codex / Claude Code 会话，输出 JSON
-import json, os, glob, time, re, struct, sqlite3, subprocess
+import json, os, glob, time, re, struct, sqlite3, subprocess, datetime
+import sys
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse
 HTML_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "agent-task-dashboard.html")
@@ -11,8 +12,36 @@ CLAUDE_DIR = os.path.join(HOME, ".claude/projects")
 DSH_DIR = os.path.join(HOME, ".dsh/sessions")
 PIN_FLAG = os.path.join(HOME, ".agent-panel-pin")
 CONFIG_PATH = os.path.join(HOME, ".agent-panel-config.json")
-ACTIVE_WINDOW = 120      # 秒内有写入视为执行中
+PID_PATH = os.path.join(HOME, ".agent-panel-server.pid")
+
+# 构建标识：App 启动时用同一个算法算自己 bundle 里 server.py 的指纹并传进来。
+# 端口上若跑着指纹不同的旧进程（重装后常见），App 会杀掉它再拉起新服务，
+# 否则面板会静默显示旧代码产出的数据。
+def build_id(path):
+    h = 0xcbf29ce484222325
+    try:
+        with open(path, "rb") as fh:
+            while True:
+                chunk = fh.read(65536)
+                if not chunk:
+                    break
+                for b in chunk:
+                    h = ((h ^ b) * 0x100000001b3) & 0xFFFFFFFFFFFFFFFF
+    except OSError:
+        return "0"
+    return "%016x" % h
+
+BUILD_ID = "0"
 SCAN_AGE = 24 * 3600     # 只看 24 小时内的会话
+
+# 僵尸判定：有"执行中"信号但会话已无进展 → 进程已崩/已退出，降级 idle。
+# 阈值按会话自身的事件间隔自适应（p90 × 4），并用上下限夹住。
+# 实测回合内静默 p95=287s / p99=1032s，所以下限取 600s，避免把长构建误判成僵尸。
+ZOMBIE_MIN = 600
+ZOMBIE_MAX = 3600
+ZOMBIE_FACTOR = 4
+ZOMBIE_DEFAULT = 900     # 历史样本不足时的兜底
+
 _cache = {"data": [], "mtime": 0.0}   # 短缓存，避免轮询间隔重复扫描
 # 完成通知：服务端对比 running→done，避免面板关窗时 WKWebView 节流漏发
 _prev_status = {}
@@ -22,6 +51,38 @@ _file_cache = {"codex": {}, "claude": {}, "dsh": {}}
 
 def first_text(text):
     return re.sub(r"\s+", " ", str(text)).strip()[:60]
+
+
+def parse_ts(value):
+    """ISO8601 → epoch 秒；无法解析返回 None。"""
+    if not value:
+        return None
+    try:
+        return datetime.datetime.fromisoformat(str(value).replace("Z", "+00:00")).timestamp()
+    except Exception:
+        return None
+
+
+def zombie_threshold(timestamps):
+    """按会话自身的事件间隔算僵尸阈值：p90 * 4，夹在 600~3600 秒之间。
+
+    自适应只用于识别"有执行中信号但已无写入"的僵尸进程，
+    不参与正常完成判断——完成一律由各渠道的显式边界事件决定。
+    """
+    gaps = [b - a for a, b in zip(timestamps, timestamps[1:]) if 0 < b - a < 3600]
+    if len(gaps) < 3:
+        return ZOMBIE_DEFAULT
+    gaps.sort()
+    p90 = gaps[int(len(gaps) * 0.9)]
+    return max(ZOMBIE_MIN, min(ZOMBIE_MAX, p90 * ZOMBIE_FACTOR))
+
+
+def demote_if_zombie(status, mtime, threshold, now=None):
+    """有执行中信号但长时间无写入 → idle（进程大概率已退出）。"""
+    if status != "running":
+        return status
+    now = time.time() if now is None else now
+    return "idle" if now - mtime > threshold else status
 
 
 def load_config():
@@ -140,12 +201,22 @@ def scan_cue():
     for sid, st in sessions.items():
         if now - st["mtime"] > SCAN_AGE or not (st.get("title") or st.get("brief")):
             continue
-        status = st.get("status", "")
-        running = status == "running" or now - st["mtime"] < ACTIVE_WINDOW
+        # Cue 自带 agentStatus 三态：running / waiting / stopped
+        agent_status = st.get("status", "")
+        if agent_status == "running":
+            status = "running"
+        elif agent_status == "waiting":
+            # 等用户或等外部资源，不是完成——旧代码把它算成 done，是假通知来源
+            status = "idle"
+        elif agent_status == "stopped":
+            status = "done"
+        else:
+            # 没有状态事件的老会话：只能靠写入时间兜底
+            status = "running" if now - st["mtime"] < ZOMBIE_DEFAULT else "idle"
         recent = st.get("live") or st.get("desc") or st.get("brief") or ""
         # title 缺失时用会话 id 短码，brief 留给副标题（brief 是状态描述不是标题）
         out.append({"agent": "cue", "title": st.get("title") or "Cue · " + sid[:6],
-                    "cwd": "", "status": "running" if running else "done",
+                    "cwd": "", "status": status,
                     "mtime": st["mtime"], "link": "cue://", "recent": recent, "recent_at": ""})
     return out
 
@@ -173,8 +244,14 @@ def scan_grok():
             continue
         last = r.get("lastEntry") or {}
         recent = first_text(last.get("text") or (last.get("sessionPreview") or {}).get("text", "")) if isinstance(last, dict) else ""
-        waiting = r.get("awaitingUserResponse")
-        status = "running" if now - mtime < ACTIVE_WINDOW else ("idle" if waiting else "done")
+        # Grok 的 blob 里没有 role/完成字段（awaitingUserResponse 实测全为 null），
+        # 只有一个 lastActivityAt。用僵尸兜底窗口判断：窗口内算执行中，超过算已完成。
+        if r.get("awaitingUserResponse"):
+            status = "idle"
+        elif now - mtime < ZOMBIE_DEFAULT:
+            status = "running"
+        else:
+            status = "done"
         out.append({"agent": "grok-bot", "title": first_text(r.get("name") or r.get("title") or "Grok 会话"),
                     "cwd": "", "status": status, "mtime": mtime, "link": "sand://",
                     "recent": recent, "recent_at": ""})
@@ -192,6 +269,7 @@ def scan_apps():
         key=os.path.getmtime)
     today_db = today_dbs[-1] if today_dbs else None
     today_title, today_mtime = None, 0
+    today_last_role, today_wire_state = "", ""
     try:
         con = sqlite3.connect(f"file:{today_db}?mode=ro", uri=True)
         for (payload,) in con.execute(
@@ -203,6 +281,9 @@ def scan_apps():
             ts = d.get("createdAt", 0) / 1000
             if ts > today_mtime:
                 today_mtime = ts
+                # 最后一条消息的角色：assistant 已回复=完成，user 等回复=执行中
+                today_last_role = d.get("role") or ""
+                today_wire_state = d.get("wireState") or ""
             if d.get("role") == "user" and not today_title:
                 parts = d.get("parts") or [{}]
                 t = parts[0].get("text", "")
@@ -217,7 +298,13 @@ def scan_apps():
             continue
         if proc == "Today" and today_mtime:
             age = time.time() - today_mtime
-            status = "running" if age < ACTIVE_WINDOW else ("done" if today_title else "idle")
+            if today_last_role == "assistant" and today_wire_state == "completed":
+                status = "done"
+            elif today_last_role == "user":
+                # 用户发了消息、助手还没回：执行中（超时则降级 idle）
+                status = demote_if_zombie("running", today_mtime, ZOMBIE_DEFAULT)
+            else:
+                status = "idle"
             agent_id = "today-intl" if today_split else "today"
             display = "Today Intl" if today_split else "Today"
             out.append({"agent": agent_id, "title": today_title or "今日助手", "cwd": "",
@@ -255,7 +342,7 @@ def _dsh_proc_alive():
 
 
 def scan_dsh():
-    # DeepSeek Harness 会话：zstd 压缩的 v4 jsonl；mtime 在 ACTIVE_WINDOW 内 = 执行中
+    # DeepSeek Harness 会话：zstd 压缩的 v4 jsonl；turn/start → turn/end 是回合边界
     out = []
     now = time.time()
     for f in glob.glob(os.path.join(DSH_DIR, "*", "*", "session.v4.jsonl.zstd")):
@@ -267,19 +354,24 @@ def scan_dsh():
             out.append(cached[1])
             continue
         title, recent = None, ""
+        turn_open, turn_ts = False, []
         try:
             raw = subprocess.run(["zstd", "-dc", f], capture_output=True, timeout=10).stdout
         except Exception:
             raw = b""
         for line in raw.decode("utf-8", "ignore").splitlines():
             head = line[:600]
-            if not ('"session/title"' in head or '"user/message"' in head):
+            if not ('"session/title"' in head or '"user/message"' in head
+                    or '"turn/start"' in head or '"turn/end"' in head):
                 continue
             try:
                 j = json.loads(line)
             except Exception:
                 continue
             t, d = j.get("type"), j.get("data") or {}
+            ts = parse_ts(j.get("timestamp") or j.get("time") or d.get("timestamp"))
+            if ts:
+                turn_ts.append(ts)
             if t == "session/title" and not title and d.get("title"):
                 title = first_text(d["title"])
             elif t == "user/message" and not recent:
@@ -288,11 +380,20 @@ def scan_dsh():
                 # 跳过运行时上下文/系统注入的伪用户消息
                 if txt and not txt.startswith(("<", "Current runtime", "Current DSH")):
                     recent = first_text(txt)
+            elif t == "turn/start":
+                turn_open = True
+            elif t == "turn/end":
+                turn_open = False
         if not (title or recent):
             continue
+        if turn_open:
+            # 回合开着但久无写入 → 进程大概率已退出
+            status = demote_if_zombie("running", mtime, zombie_threshold(turn_ts))
+        else:
+            status = "done"
         # 状态在读取时计算，缓存里存的是快照；mtime 未变则状态也不会变
         task = {"agent": "deepseek", "title": title or recent or "DeepSeek 会话",
-                "cwd": "", "status": "running" if now - mtime < ACTIVE_WINDOW else "done",
+                "cwd": "", "status": status,
                 "mtime": mtime, "link": "dsh://",
                 "recent": recent if title else "", "recent_at": ""}
         _file_cache["dsh"][f] = (mtime, task)
@@ -303,11 +404,16 @@ def parse_codex_file(f):
     tid = re.search(r"-([0-9a-f-]{36})\.jsonl$", f)
     title, cwd, complete_at, last_ev = None, None, "", ""
     recent, recent_at = "", ""
+    # 回合边界用事件顺序判断，而不是比较时间戳：
+    # task_complete 之后还会写 token_count 等统计事件，比时间戳会失效。
+    turn_open = False
+    ev_ts = []
     try:
         with open(f, errors="ignore") as fh:
             for line in fh:
                 head = line[:600]
-                if not ('turn_context' in head or 'user_message' in head or 'item_completed' in head or 'task_complete' in head):
+                if not ('turn_context' in head or 'user_message' in head or 'item_completed' in head
+                        or 'task_complete' in head or 'task_started' in head or 'turn_aborted' in head):
                     continue
                 try:
                     j = json.loads(line)
@@ -315,10 +421,21 @@ def parse_codex_file(f):
                     continue
                 ts = j.get("timestamp", "")
                 p = j.get("payload", {}) or {}
+                ts_epoch = parse_ts(ts)
+                if ts_epoch:
+                    ev_ts.append(ts_epoch)
                 if j.get("type") == "turn_context" and not cwd:
                     cwd = p.get("cwd")
                 if j.get("type") == "event_msg":
                     pt = p.get("type")
+                    if pt == "task_started":
+                        turn_open = True
+                    elif pt == "task_complete":
+                        turn_open = False
+                        complete_at = ts
+                    elif pt == "turn_aborted":
+                        # 用户中断也视为回合结束
+                        turn_open = False
                     if pt == "user_message" and not title:
                         title = clean_title(p.get("message", ""))
                     if pt == "user_message":
@@ -342,8 +459,6 @@ def parse_codex_file(f):
                             if txt and item.get("role") != "user":
                                 recent, recent_at = first_text(txt), ts
                                 break
-                    elif pt == "task_complete":
-                        complete_at = ts
                     if ts:
                         last_ev = ts
     except OSError:
@@ -355,6 +470,7 @@ def parse_codex_file(f):
         "mtime": os.path.getmtime(f),
         "link": ("codex://threads/" + tid.group(1)) if tid else "codex://",
         "complete_at": complete_at, "last_ev": last_ev,
+        "turn_open": turn_open, "ev_ts": ev_ts,
         "recent": recent, "recent_at": recent_at,
     }]
 
@@ -374,14 +490,27 @@ def scan_codex():
         for t in r:
             t = dict(t)
             t["mtime"] = os.path.getmtime(f)
-            age = now - t["mtime"]
-            t["status"] = "done" if t["complete_at"] and t["complete_at"] >= t["last_ev"] else ("running" if age < ACTIVE_WINDOW else "idle")
+            if t["turn_open"]:
+                # 回合开着：正常是执行中，久无写入则判定进程已退出
+                t["status"] = demote_if_zombie("running", t["mtime"], zombie_threshold(t["ev_ts"]))
+            elif t["complete_at"]:
+                t["status"] = "done"
+            else:
+                # 没有回合边界的旧会话（未产生 task_started/task_complete）
+                t["status"] = "running" if now - t["mtime"] < ZOMBIE_DEFAULT else "idle"
+            t.pop("turn_open", None)
+            t.pop("ev_ts", None)
             out.append(t)
     return out
 
 def parse_claude_file(f):
     title, cwd, last_user_ts, last_asst_ts = None, None, "", ""
     recent, recent_at = "", ""
+    # 最后一条消息的角色 + 最后一条 assistant 的 stop_reason 决定回合状态：
+    # end_turn/stop_sequence = 已回复完；tool_use = 还在跑工具；最后是 user = 等回复
+    last_role, last_stop_reason = "", ""
+    ev_ts = []
+    is_sidechain = False
     try:
         with open(f, errors="ignore") as fh:
             for line in fh:
@@ -393,16 +522,24 @@ def parse_claude_file(f):
                 except Exception:
                     continue
                 t = j.get("type")
+                if j.get("isSidechain") is True:
+                    is_sidechain = True
                 if cwd is None:
                     cwd = j.get("cwd")
                 ts = j.get("timestamp", "")
+                ts_epoch = parse_ts(ts)
+                if ts_epoch:
+                    ev_ts.append(ts_epoch)
                 if t == "user":
+                    last_role = "user"
                     c = (j.get("message") or {}).get("content")
                     if isinstance(c, str) and not title and not c.startswith("<"):
                         title = first_text(c)
                     if ts:
                         last_user_ts = ts
                 elif t == "assistant" and ts:
+                    last_role = "assistant"
+                    last_stop_reason = (j.get("message") or {}).get("stop_reason") or ""
                     last_asst_ts = ts
                     c = (j.get("message") or {}).get("content")
                     if isinstance(c, list):
@@ -415,14 +552,34 @@ def parse_claude_file(f):
         pass
     if not title:
         return []
+    if is_sidechain:
+        return []
+    # 工作流 harness 会持续生成两类噪音会话：
+    #   1) cwd 落在 ~/.claude/projects 里的元会话（"关于会话的会话"）
+    #   2) 首条用户消息以 [Workflow harness — …] 开头的派发任务
+    # 实测这类文件一分钟能刷出十几条，会把任务列表冲垮。
+    if cwd and os.path.abspath(cwd).startswith(os.path.abspath(CLAUDE_DIR)):
+        return []
+    if title.startswith("[Workflow harness"):
+        return []
+    # 标题退化成 "-" 之类的噪音（首条消息是 shell 回显）
+    if len(title.strip(" -\t")) < 2:
+        return []
+    # 首条消息是命令路径回显（如 claude 自身报错 "fork: Resource temporarily unavailable"）
+    if title.startswith("/") and "/bin/" in title[:80]:
+        return []
     return [{"agent": "claude", "title": title, "cwd": cwd or "", "mtime": os.path.getmtime(f),
              "link": "", "last_user": last_user_ts, "last_asst": last_asst_ts,
+             "last_role": last_role, "stop_reason": last_stop_reason, "ev_ts": ev_ts,
              "recent": recent, "recent_at": recent_at}]
 
 def scan_claude():
     now = time.time()
     out = []
     for f in glob.glob(os.path.join(CLAUDE_DIR, "**/*.jsonl"), recursive=True):
+        # 子 agent 的转录单独写成 agent-*.jsonl，不是用户任务，混进来会让列表翻倍
+        if os.path.basename(f).startswith("agent-"):
+            continue
         mtime = os.path.getmtime(f)
         if now - mtime > SCAN_AGE:
             continue
@@ -434,8 +591,17 @@ def scan_claude():
             _file_cache["claude"][f] = (mtime, r)
         for t in r:
             t = dict(t)
-            age = now - t["mtime"]
-            t["status"] = "running" if age < ACTIVE_WINDOW else ("done" if t["last_asst"] >= t["last_user"] else "idle")
+            last_role, stop_reason = t["last_role"], t["stop_reason"]
+            if last_role == "assistant" and stop_reason in ("end_turn", "stop_sequence"):
+                t["status"] = "done"
+            elif last_role == "user" or stop_reason == "tool_use":
+                # 用户已发消息等回复，或还在跑工具：执行中；久无写入则进程已退
+                t["status"] = demote_if_zombie("running", t["mtime"], zombie_threshold(t["ev_ts"]))
+            else:
+                t["status"] = "idle"
+            t.pop("last_role", None)
+            t.pop("stop_reason", None)
+            t.pop("ev_ts", None)
             out.append(t)
     return out
 
@@ -486,6 +652,8 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, json.dumps({**result, "pin": os.path.exists(PIN_FLAG)}))
         elif path == "/api/config":
             self._send(200, json.dumps({"agents": ALL_AGENTS, **load_config()}))
+        elif path == "/api/health":
+            self._send(200, json.dumps({"pid": os.getpid(), "build": BUILD_ID}))
         else:
             self._send(404, "{}")
     def do_POST(self):
@@ -507,4 +675,15 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(400, json.dumps({"ok": False}))
 
 if __name__ == "__main__":
+    BUILD_ID = build_id(os.path.abspath(__file__))
+    if "--build" in sys.argv:
+        try:
+            BUILD_ID = sys.argv[sys.argv.index("--build") + 1] or BUILD_ID
+        except IndexError:
+            pass
+    try:
+        with open(PID_PATH, "w") as fh:
+            fh.write(str(os.getpid()))
+    except OSError:
+        pass
     HTTPServer(("127.0.0.1", 8765), Handler).serve_forever()

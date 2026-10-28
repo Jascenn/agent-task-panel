@@ -13,7 +13,7 @@
 [![Release](https://img.shields.io/github/v/release/Jascenn/agent-task-panel?label=release&color=111111)](https://github.com/Jascenn/agent-task-panel/releases/latest)
 [![Stars](https://img.shields.io/github/stars/Jascenn/agent-task-panel?style=flat&color=111111)](https://github.com/Jascenn/agent-task-panel/stargazers)
 [![License](https://img.shields.io/badge/license-MIT-111111)](LICENSE)
-![macOS](https://img.shields.io/badge/macOS-13%2B-000000?logo=apple&logoColor=white)
+![macOS](https://img.shields.io/badge/macOS-12%2B-000000?logo=apple&logoColor=white)
 
 **[下载最新版](https://github.com/Jascenn/agent-task-panel/releases/latest)** · [功能](#功能) · [支持的 App](#支持的-app) · [从源码构建](#从源码构建) · English · *[README](README.md)*
 
@@ -48,11 +48,12 @@
 - **完成通知**：任务从执行中变已完成时发系统通知
 - **开机自启**：菜单一键开关，通过 LaunchAgent 实现
 
-## v0.3.2 更新
+## v0.3.3 更新
 
-- **完成通知更可靠**：服务端检测 running→done 并保证只发一次，面板隐藏时不再漏通知
-- **修复 Today 跳转**：同时装两个版本时，点卡片精确打开对应的 Intl / CN 版本
-- **轮询更省电**：DeepSeek 会话按文件 mtime 缓存，不再每 3 秒全量解压
+- **状态更准**：每个渠道用自己的回合边界判断执行中/已完成/空闲，不再用「120 秒没写文件」硬猜，长构建不会被打成已完成
+- **不再有幽灵任务**：Claude Code 的子 agent 转录和工作流 harness 会话已过滤
+- **Universal 构建**：一个 DMG 同时支持 Apple Silicon 和 Intel，最低 macOS 12
+- **升级后不再显示旧数据**：面板会识别上一版残留的服务进程并替换
 
 → 完整历史：[CHANGELOG.md](CHANGELOG.md)
 
@@ -92,7 +93,7 @@ zsh scripts/build.sh
 open AgentTaskPanel.app
 ```
 
-要求：macOS 13+，Xcode Command Line Tools（`xcode-select --install`）。
+要求：macOS 12+（Apple Silicon 或 Intel），Xcode Command Line Tools（`xcode-select --install`）。
 
 也可以直接浏览器打开面板：`http://127.0.0.1:8765`。
 

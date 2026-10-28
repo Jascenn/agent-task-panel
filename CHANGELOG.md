@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-10-28
+
+### Added
+- `/api/health` reports the server's build fingerprint. On launch the app compares it with its own
+  bundle and replaces a stale server process, so reinstalling never leaves the panel showing data
+  produced by the previous version.
+
+### Changed
+- Task state is now derived from each channel's own turn boundaries instead of a fixed 120-second
+  file-mtime window:
+  Codex `task_started`/`task_complete`, Claude Code `stop_reason`, DeepSeek `turn/start`→`turn/end`,
+  Cue `agentStatus`, Today `wireState` + last message role.
+- Turns that stay open with no progress fall back to an adaptive timeout
+  (`p90 gap × 4`, clamped to 600–3600 s) instead of a hard-coded value. Measured intra-turn silence
+  reaches p95 287 s / p99 1032 s, so the old 120 s window misreported long builds as finished.
+- Release builds are Universal (arm64 + x86_64) and declare macOS 12.0 as the minimum.
+
+### Fixed
+- Codex sessions whose last events were `token_count` after `task_complete` were reported as
+  unfinished; the state is now decided by event order, not timestamp comparison.
+- Cue sessions in `waiting` state were reported as completed and produced false "task finished"
+  notifications.
+- Claude Code sub-agent transcripts (`agent-*.jsonl`, `isSidechain`) and workflow-harness meta
+  sessions (cwd inside `~/.claude/projects`, `[Workflow harness …]` prompts) flooded the list as
+  duplicate tasks. Both are filtered now.
+
 ## [0.3.2] - 2026-10-28
 
 ### Added

@@ -20,6 +20,9 @@ AgentTaskPanel 安装说明 / Installation Guide
   · 悬浮面板会自动出现，点任务卡片可直接跳回对应的 Agent
   · 数据只在本机读取和分析，不会上传任何内容
 
+升级：新版直接拖进「应用程序」，系统提示时选「替换」。
+（不要用 ditto 往旧 App 上叠加合并，会破坏签名；需要命令行安装时先删旧包再复制）
+
 卸载方法：把「应用程序」里的 AgentTaskPanel 拖进废纸篓即可。
 （可选清理：删除 ~/.agent-panel-config.json 和 ~/.agent-panel-pin）
 
@@ -45,6 +48,9 @@ After installation:
   · A 🤖 icon appears in the menu bar (top-right); the number shows running task count
   · The floating panel appears automatically; click a task card to jump back to its Agent
   · All data is read and analyzed locally only — nothing is uploaded
+
+Upgrade: drag the new build into "Applications" and choose "Replace" when asked.
+(Do not merge into an existing bundle with ditto — it breaks the code signature.)
 
 Uninstall: drag AgentTaskPanel from "Applications" to the Trash.
 (Optional cleanup: remove ~/.agent-panel-config.json and ~/.agent-panel-pin)

@@ -39,9 +39,23 @@ curl -s http://127.0.0.1:8765/api/tasks | head -c 200
 
 ### 构建要求
 
-- macOS 13+
+- 构建机 macOS 13+（产物最低支持 macOS 12）
 - Xcode Command Line Tools：`xcode-select --install`
 - 打 DMG 需要 create-dmg：`brew install create-dmg`
+
+### 架构与最低系统
+
+`scripts/build.sh` 默认产出 Universal Binary（arm64 + x86_64），最低系统由 `MIN_MACOS` 控制：
+
+```bash
+ARCHS="arm64" zsh scripts/build.sh      # 只编本机架构，开发时更快
+MIN_MACOS=13.0 zsh scripts/build.sh     # 提高最低系统要求
+```
+
+不显式指定 `-target` 时，swiftc 会把 minos 设成构建机当前系统版本，别人装了会直接闪退——
+所以脚本里固定传 `-target <arch>-apple-macos$MIN_MACOS`，CI 也会校验 `vtool` 的 minos。
+
+`Info.plist` 里的 `LSMinimumSystemVersion` 要和 `MIN_MACOS` 保持一致。
 
 ### App 图标
 
