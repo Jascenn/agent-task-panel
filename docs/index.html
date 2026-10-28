@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgentTaskPanel — macOS AI Agent 任务悬浮面板</title>
+<meta name="description" content="macOS 悬浮任务面板：聚合 Codex、Claude Code、DeepSeek、Cue、Grok、Today 的会话状态，任务一结束就提醒，点一下跳回对应 Agent。">
+<meta name="author" content="凌一（Jascenn）">
+<meta name="theme-color" content="#f7f3ec">
+<link rel="canonical" href="https://agentpanel.lingyi.tools/">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "AgentTaskPanel",
+  "description": "聚合 Codex、Claude Code、DeepSeek、Cue、Grok 和 Today 会话状态的 macOS 悬浮任务面板。",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "macOS 12 or later",
+  "softwareVersion": "0.3.3",
+  "downloadUrl": "https://github.com/Jascenn/agent-task-panel/releases/latest",
+  "codeRepository": "https://github.com/Jascenn/agent-task-panel",
+  "author": {
+    "@type": "Person",
+    "name": "凌一",
+    "alternateName": "Jascenn",
+    "url": "https://lingyi.bio"
+  },
+  "license": "https://opensource.org/license/mit",
+  "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}
+}
+</script>
+<meta property="og:title" content="AgentTaskPanel">
+<meta property="og:description" content="一个面板看住所有 Agent 任务：真实状态、完成通知、点击跳回。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://agentpanel.lingyi.tools/">
+<meta property="og:image" content="https://agentpanel.lingyi.tools/screenshots/social-card.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="AgentTaskPanel：一个面板看住所有 Agent 任务">
+<meta property="og:site_name" content="AgentTaskPanel">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AgentTaskPanel">
+<meta name="twitter:description" content="一个面板看住所有 Agent 任务：真实状态、完成通知、点击跳回。">
+<meta name="twitter:image" content="https://agentpanel.lingyi.tools/screenshots/social-card.png">
+<meta name="twitter:image:alt" content="AgentTaskPanel：一个面板看住所有 Agent 任务">
+<link rel="icon" href="appicon-256.png">
+<link rel="apple-touch-icon" href="appicon-256.png">
+<style>
+  :root{
+    --paper:#f7f3ec;
+    --paper-2:#efe9df;
+    --card:#fffdfa;
+    --ink:#14110d;
+    --ink-2:#4b443b;
+    --ink-3:#746b61;
+    --line:#e3dbcf;
+    --run:#2fa96a;
+    --idle:#d99a2b;
+    --done:#9c948a;
+    --radius:18px;
+    --shadow:0 1px 2px rgba(20,17,13,.04), 0 12px 32px -12px rgba(20,17,13,.18);
+    --mono:"SF Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans:-apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    --serif:"Songti SC", "Noto Serif SC", "Source Han Serif SC", Georgia, serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:var(--sans); -webkit-font-smoothing:antialiased;
+    line-height:1.65;
+    background-image:
+      radial-gradient(900px 420px at 82% -8%, rgba(217,154,43,.13), transparent 62%),
+      radial-gradient(720px 380px at 4% 4%, rgba(47,169,106,.10), transparent 60%);
+    background-repeat:no-repeat;
+  }
+  a{color:inherit}
+  :focus-visible{outline:2px solid var(--run);outline-offset:3px;border-radius:4px}
+  .skip{
+    position:fixed;top:10px;left:10px;z-index:100;padding:9px 14px;
+    background:var(--ink);color:#fff;border-radius:8px;text-decoration:none;
+    transform:translateY(-160%);transition:transform .15s ease;
+  }
+  .skip:focus{transform:none}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+
+  /* ---------- top bar ---------- */
+  header{
+    position:sticky;top:0;z-index:20;
+    backdrop-filter:saturate(1.2) blur(14px);
+    background:rgba(247,243,236,.82);
+    border-bottom:1px solid rgba(227,219,207,.75);
+  }
+  .bar{display:flex;align-items:center;gap:14px;height:62px}
+  .brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:650;letter-spacing:-.01em}
+  .brand img{width:26px;height:26px;border-radius:7px;box-shadow:0 1px 3px rgba(0,0,0,.18)}
+  nav{margin-left:auto;display:flex;gap:22px;align-items:center}
+  nav a{text-decoration:none;font-size:14px;color:var(--ink-2);padding:6px 0;border-bottom:1px solid transparent;white-space:nowrap;flex-shrink:0}
+  nav a:hover{color:var(--ink);border-bottom-color:var(--ink)}
+  .ghost{
+    border:1px solid var(--line);border-radius:999px;padding:7px 14px;
+    font-size:13.5px;background:var(--card);text-decoration:none;white-space:nowrap;
+  }
+  .ghost:hover{border-color:var(--ink-3)}
+  @media(max-width:760px){
+    .bar{gap:9px}
+    .brand{font-size:14px}
+    nav{gap:11px}
+    nav a:not(.ghost){display:none}
+    nav a[href="#features"],nav a[href="#install"]{display:block;font-size:12.5px}
+    .ghost{padding:6px 10px;font-size:12px}
+  }
+  @media(max-width:360px){
+    nav a[href="#features"],nav a[href="#install"]{display:none}
+  }
+
+  /* ---------- hero ---------- */
+  .hero{display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center;padding:74px 0 64px}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);
+    font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);
+    border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 12px;
+  }
+  .dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+  .dot.run{background:var(--run);box-shadow:0 0 0 3px rgba(47,169,106,.16)}
+  .dot.idle{background:var(--idle)}
+  .dot.done{background:var(--done)}
+  h1{
+    font-family:var(--serif);font-weight:600;font-size:clamp(38px,5.1vw,62px);
+    line-height:1.14;letter-spacing:-.02em;margin:20px 0 18px;
+  }
+  h1 em{font-style:normal;position:relative;white-space:nowrap}
+  h1 em::after{
+    content:"";position:absolute;left:-2px;right:-2px;bottom:.06em;height:.34em;
+    background:rgba(47,169,106,.20);border-radius:2px;z-index:-1;
+  }
+  .lede{font-size:17px;color:var(--ink-2);max-width:38ch;margin:0 0 28px}
+  .cta{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .btn{
+    display:inline-flex;align-items:center;gap:9px;text-decoration:none;
+    background:var(--ink);color:#fff;border-radius:12px;padding:13px 22px;
+    font-size:15px;font-weight:600;box-shadow:var(--shadow);transition:transform .18s ease, box-shadow .18s ease;
+  }
+  .btn:hover{transform:translateY(-1px)}
+  .btn small{font-weight:500;opacity:.62;font-family:var(--mono);font-size:11.5px}
+  .btn.alt{background:transparent;color:var(--ink);border:1px solid var(--line);box-shadow:none;font-weight:550}
+  .btn.alt:hover{border-color:var(--ink-3)}
+  .meta{margin-top:18px;font-size:13px;color:var(--ink-3);display:flex;gap:16px;flex-wrap:wrap}
+  .meta span{display:inline-flex;align-items:center;gap:6px}
+
+  .shot{position:relative}
+  .shot img{
+    width:100%;height:auto;display:block;border-radius:16px;border:1px solid rgba(20,17,13,.10);
+    box-shadow:0 30px 60px -28px rgba(20,17,13,.45), 0 4px 14px rgba(20,17,13,.08);
+    transform:rotate(.6deg);
+  }
+  .shot::after{
+    content:"frost · 毛玻璃";position:absolute;right:14px;bottom:-11px;
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;color:var(--ink-3);
+    background:var(--paper);padding:2px 8px;border-radius:6px;
+  }
+
+  /* ---------- section shell ---------- */
+  section{padding:64px 0;scroll-margin-top:78px}
+  .sec-head{display:flex;align-items:baseline;gap:16px;margin-bottom:30px;flex-wrap:wrap}
+  .sec-head h2{font-family:var(--serif);font-weight:600;font-size:clamp(26px,3vw,34px);margin:0;letter-spacing:-.01em}
+  .sec-head p{margin:0;color:var(--ink-3);font-size:14px}
+
+  /* ---------- states strip ---------- */
+  .states{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .state{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:20px 22px;box-shadow:var(--shadow);
+  }
+  .state b{display:flex;align-items:center;gap:9px;font-size:15.5px}
+  .state p{margin:8px 0 0;font-size:13.5px;color:var(--ink-3);line-height:1.55}
+
+  /* ---------- features ---------- */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:24px;box-shadow:var(--shadow);transition:transform .2s ease, border-color .2s ease;
+  }
+  .card:hover{transform:translateY(-2px);border-color:#d3c8b8}
+  .card h3{margin:0 0 8px;font-size:15.5px;letter-spacing:-.01em}
+  .card p{margin:0;font-size:13.8px;color:var(--ink-2)}
+  .k{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--ink-3);display:block;margin-bottom:14px}
+  code{
+    font-family:var(--mono);font-size:12.6px;background:var(--paper-2);
+    border:1px solid var(--line);border-radius:5px;padding:1px 6px;
+  }
+
+  /* ---------- modes ---------- */
+  .modes{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .mode figure{margin:0}
+  .mode img{width:100%;height:auto;display:block;border-radius:12px;border:1px solid var(--line);box-shadow:var(--shadow)}
+  .clear-toggle{
+    position:relative;display:block;width:100%;aspect-ratio:5/8;
+    padding:0;border:0;border-radius:12px;background:transparent;
+    cursor:pointer;overflow:hidden;text-align:left;
+  }
+  .clear-toggle img{
+    position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+    transition:opacity .3s ease, transform .45s cubic-bezier(.2,.7,.2,1);
+  }
+  .clear-toggle .clear-dark-img{opacity:0;transform:scale(1.025)}
+  .clear-toggle[aria-pressed="true"] .clear-light-img{opacity:0;transform:scale(.985)}
+  .clear-toggle[aria-pressed="true"] .clear-dark-img{opacity:1;transform:none}
+  .clear-toggle::after{
+    content:"点击切换 · 白底 ↔ 深色底";position:absolute;left:50%;bottom:14px;
+    transform:translateX(-50%);z-index:2;padding:6px 10px;border-radius:999px;
+    background:rgba(20,17,13,.72);color:#fff;font-family:var(--mono);
+    font-size:10px;letter-spacing:.04em;white-space:nowrap;pointer-events:none;
+    backdrop-filter:blur(8px);transition:opacity .2s ease;
+  }
+  .clear-toggle:hover::after,
+  .clear-toggle:focus-visible::after{opacity:.35}
+  .mode figcaption{margin-top:10px;font-size:13px;color:var(--ink-3);text-align:center}
+  .mode figcaption b{color:var(--ink);font-weight:600}
+  .clear-state{font-family:var(--mono);font-size:11px;color:var(--ink-2)}
+
+  /* ---------- table ---------- */
+  .tablewrap{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:13px 18px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);font-family:var(--mono);font-weight:500;background:var(--paper-2)}
+  tr:last-child td{border-bottom:none}
+  td.name{font-weight:600;white-space:nowrap}
+  .tag{font-family:var(--mono);font-size:11px;padding:2px 7px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}
+  .tag.full{color:#1d7a4d;border-color:#b9e0c8;background:#eef8f1}
+  .tag.part{color:#8a5e08;border-color:#ead9b3;background:#fdf5e4}
+  td.src{font-family:var(--mono);font-size:12px;color:var(--ink-3);word-break:break-all}
+
+  /* ---------- install ---------- */
+  .install{display:grid;grid-template-columns:1.1fr .9fr;gap:18px;align-items:start}
+  .steps{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:26px;box-shadow:var(--shadow)}
+  ol{margin:0;padding-left:20px}
+  ol li{margin:0 0 14px;font-size:14.5px;color:var(--ink-2)}
+  ol li b{color:var(--ink)}
+  .term{
+    background:#171512;color:#e9e3d8;border-radius:var(--radius);padding:18px 18px 16px;
+    font-family:var(--mono);font-size:12.5px;overflow:auto;box-shadow:var(--shadow);
+  }
+  .term .cmd{display:flex;gap:10px;align-items:flex-start}
+  .term .cmd span{color:#7cc49a}
+  .term .note{color:#8b8378;margin-top:12px;font-size:11.5px;line-height:1.6}
+  .copy{
+    margin-left:auto;background:#2b2823;color:#cfc7b9;border:1px solid #3a352e;border-radius:7px;
+    font-family:var(--mono);font-size:11px;padding:4px 9px;cursor:pointer;
+  }
+  .copy:hover{color:#fff;border-color:#5a5347}
+  .copy:disabled{cursor:wait;opacity:.7}
+
+  /* ---------- faq ---------- */
+  details{
+    background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:16px 20px;margin-bottom:10px;
+  }
+  details summary{cursor:pointer;font-weight:600;font-size:14.5px;list-style:none;border-radius:6px}
+  details summary::-webkit-details-marker{display:none}
+  details summary::before{content:"＋";color:var(--ink-3);margin-right:10px;font-weight:400}
+  details[open] summary::before{content:"－"}
+  details p{margin:10px 0 0 24px;font-size:13.8px;color:var(--ink-2)}
+
+  footer{border-top:1px solid var(--line);padding:34px 0 56px;color:var(--ink-3);font-size:13px}
+  footer .row{display:flex;gap:18px;flex-wrap:wrap;align-items:center}
+  footer a{text-decoration:none;border-bottom:1px solid transparent}
+  footer a:hover{border-bottom-color:var(--ink-3)}
+
+  /* ---------- motion ---------- */
+  .reveal{opacity:0;transform:translateY(14px);transition:opacity .6s ease, transform .6s ease}
+  .reveal.in{opacity:1;transform:none}
+  @media(prefers-reduced-motion:reduce){
+    .reveal{opacity:1;transform:none;transition:none}
+    html{scroll-behavior:auto}
+  }
+
+  /* ---------- responsive ---------- */
+  @media(max-width:900px){
+    .shot img{transform:none}
+    .grid{grid-template-columns:1fr 1fr}
+    .install{grid-template-columns:1fr}
+  }
+  @media(max-width:760px){
+    .hero{grid-template-columns:1fr;gap:36px;padding:52px 0 44px}
+    .shot{width:100%;max-width:520px;margin:0 auto}
+  }
+  @media(max-width:640px){
+    .states{grid-template-columns:1fr}
+    .grid,.modes{grid-template-columns:1fr}
+    .modes{gap:22px}
+    section{padding:48px 0}
+    th,td{padding:11px 13px}
+    td.src{font-size:11px}
+    .tablewrap{background:transparent;border:0;border-radius:0;box-shadow:none;overflow:visible}
+    table,tbody,tr,td{display:block}
+    table{font-size:13.5px}
+    thead{display:none}
+    tbody{display:grid;gap:12px}
+    tr{
+      display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 14px;
+      background:var(--card);border:1px solid var(--line);border-radius:16px;
+      padding:18px;box-shadow:var(--shadow);
+    }
+    td{padding:0;border:0}
+    td.name{grid-column:1;font-size:15px;line-height:1.4;white-space:normal}
+    td:nth-child(2){grid-column:2;justify-self:end;align-self:start}
+    td:nth-child(3),td:nth-child(4){grid-column:1/-1}
+    td:nth-child(3)::before,td:nth-child(4)::before{
+      display:block;margin-bottom:3px;font-family:var(--mono);font-size:10.5px;
+      letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);
+    }
+    td:nth-child(3)::before{content:"任务明细"}
+    td:nth-child(4)::before{content:"数据来源"}
+    td.src{font-size:11.5px;line-height:1.55;word-break:break-word}
+  }
+</style>
+<noscript><style>.reveal{opacity:1;transform:none}</style></noscript>
+</head>
+<body>
+
+<a class="skip" href="#main">跳到主要内容</a>
+<header>
+  <div class="wrap bar">
+    <a class="brand" href="./"><img src="appicon-256.png" width="256" height="256" alt="">AgentTaskPanel</a>
+    <nav aria-label="主导航">
+      <a href="#features">功能</a>
+      <a href="#agents">支持的 Agent</a>
+      <a href="#install">安装</a>
+      <a class="ghost" href="https://github.com/Jascenn/agent-task-panel">GitHub ↗</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <section class="hero" style="padding-bottom:44px">
+      <div class="reveal">
+        <span class="eyebrow"><span class="dot run"></span>macOS · 本地优先 · MIT</span>
+        <h1>不用再猜<br>哪个 Agent <em>还在跑</em>。</h1>
+        <p class="lede">
+          一个悬浮小面板，把 Codex、Claude Code、DeepSeek、Cue、Grok、Today 的会话状态收在一起。
+          任务结束就提醒，点一下卡片跳回对应的 Agent。
+        </p>
+        <div class="cta">
+          <a class="btn" href="https://github.com/Jascenn/agent-task-panel/releases/latest">
+            下载最新版 <small>DMG</small>
+          </a>
+          <a class="btn alt" href="https://github.com/Jascenn/agent-task-panel">查看源码</a>
+        </div>
+        <div class="meta">
+          <span>Universal（Apple Silicon + Intel）</span>
+          <span>macOS 12+</span>
+          <span>数据不出本机</span>
+        </div>
+      </div>
+      <div class="shot reveal">
+        <img src="screenshots/screenshot-frost.jpg" width="800" height="1280" fetchpriority="high" alt="AgentTaskPanel 面板截图">
+      </div>
+    </section>
+
+    <section style="padding-top:0">
+      <div class="states reveal">
+        <div class="state">
+          <b><span class="dot run"></span>执行中</b>
+          <p>会话里有「回合开始、还没结束」的信号，正在干活。</p>
+        </div>
+        <div class="state">
+          <b><span class="dot done"></span>已完成</b>
+          <p>助手已经回复完，回合正常结束。</p>
+        </div>
+        <div class="state">
+          <b><span class="dot idle"></span>空闲</b>
+          <p>在等你输入，或者进程已经退出。</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="features">
+      <div class="sec-head reveal">
+        <h2>它不是又一个监控大屏</h2>
+        <p>只做一件事：让你随时知道现在有几个任务在跑</p>
+      </div>
+      <div class="grid">
+        <article class="card reveal"><span class="k">STATUS</span><h3>按回合边界判状态</h3><p>读每个 Agent 自己的 <code>task_complete</code>、<code>stop_reason</code>、<code>turn/end</code>，不靠「120 秒没写文件」硬猜。</p></article>
+        <article class="card reveal"><span class="k">NOTIFY</span><h3>结束就提醒</h3><p>服务端对比状态变化，面板关着也不漏发；每条只提醒一次。</p></article>
+        <article class="card reveal"><span class="k">JUMP</span><h3>点一下回到现场</h3><p>卡片带 URL scheme，点开直接落到对应的 Agent 会话。</p></article>
+        <article class="card reveal"><span class="k">FLOAT</span><h3>置顶悬浮</h3><p>📌 之后浮在所有窗口之上，包括全屏 Space。</p></article>
+        <article class="card reveal"><span class="k">BACKGROUND</span><h3>三种背景</h3><p>全透明、纯色、毛玻璃。透明模式下滑过自动让路，不挡你操作别的应用。</p></article>
+        <article class="card reveal"><span class="k">MENUBAR</span><h3>菜单栏常驻</h3><p>🤖 图标直接显示执行中数量，⌥⌘A 随时唤出面板。</p></article>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-head reveal">
+        <h2>三种背景，按场景切</h2>
+        <p>透明看底色，纯色求稳定，毛玻璃适合日常</p>
+      </div>
+      <div class="modes">
+        <div class="mode reveal">
+          <figure>
+            <button class="clear-toggle" type="button" aria-pressed="false" aria-label="切换透明模式预览：当前为白底，点击查看深色底">
+              <img class="clear-light-img" src="screenshots/screenshot-clear.jpg" width="800" height="1280" loading="lazy" decoding="async" alt="白色背景上的透明模式">
+              <img class="clear-dark-img" src="screenshots/screenshot-clear-dark.jpg" width="800" height="1280" loading="lazy" decoding="async" alt="深色背景上的透明模式">
+            </button>
+            <figcaption><b>透明</b> · <span class="clear-state">白底</span></figcaption>
+          </figure>
+        </div>
+        <div class="mode reveal"><figure><img src="screenshots/screenshot-solid.jpg" width="800" height="1280" loading="lazy" decoding="async" alt="纯色背景"><figcaption><b>纯色</b> · 最稳的对比度</figcaption></figure></div>
+        <div class="mode reveal"><figure><img src="screenshots/screenshot-frost.jpg" width="800" height="1280" loading="lazy" decoding="async" alt="毛玻璃背景"><figcaption><b>毛玻璃</b> · 和桌面融合</figcaption></figure></div>
+      </div>
+    </section>
+
+    <section id="agents">
+      <div class="sec-head reveal">
+        <h2>支持的 Agent</h2>
+        <p>能读到本地会话的，就有真实任务明细</p>
+      </div>
+      <div class="tablewrap reveal">
+        <table>
+          <thead>
+            <tr><th>Agent</th><th>状态</th><th>任务明细</th><th>数据来源</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="name">Codex</td><td><span class="tag full">完整</span></td><td>标题 · 最近进展 · 回合状态</td><td class="src">~/.codex/sessions/**/*.jsonl</td></tr>
+            <tr><td class="name">Claude Code</td><td><span class="tag full">完整</span></td><td>标题 · 最近回复 · stop_reason</td><td class="src">~/.claude/projects/**/*.jsonl</td></tr>
+            <tr><td class="name">DeepSeek Harness</td><td><span class="tag full">完整</span></td><td>标题 · 首条提问 · turn 边界</td><td class="src">~/.dsh/sessions/**/session.v4.jsonl.zstd</td></tr>
+            <tr><td class="name">Cue</td><td><span class="tag full">完整</span></td><td>实时工作文本 · agentStatus</td><td class="src">~/Library/Application Support/Cue/SessionStore/sessions.sqlite</td></tr>
+            <tr><td class="name">Grok Bot</td><td><span class="tag full">完整</span></td><td>会话名 · 最近消息</td><td class="src">~/Library/Application Support/Grok Bot/sand-client-persistence/*.blob</td></tr>
+            <tr><td class="name">Today / Today CN</td><td><span class="tag full">完整</span></td><td>会话标题 · 最近活动</td><td class="src">~/Library/Application Support/ai.today.macos.app/chat_*.sqlite</td></tr>
+            <tr><td class="name">Muse / ChatGPT</td><td><span class="tag part">仅在线</span></td><td>任务在服务端执行，本地只能确认进程在</td><td class="src">进程检测</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="install">
+      <div class="sec-head reveal">
+        <h2>三步装上</h2>
+        <p>不需要开发者账号，ad-hoc 签名即可运行</p>
+      </div>
+      <div class="install">
+        <div class="steps reveal">
+          <ol>
+            <li>从 <a href="https://github.com/Jascenn/agent-task-panel/releases/latest"><b>Releases</b></a> 下载 <code>AgentTaskPanel-v0.3.3.dmg</code></li>
+            <li>把 App 拖进「应用程序」，双击打开</li>
+            <li>首次启动允许通知权限；提示「无法验证开发者」时右键 → 打开</li>
+          </ol>
+          <p style="margin:6px 0 0;font-size:13px;color:var(--ink-3)">
+            升级时直接拖新的进「应用程序」，系统提示就选「替换」。
+          </p>
+        </div>
+        <div class="term reveal">
+          <div class="cmd">
+            <span>$</span>
+            <div id="cmdtext">xattr -dr com.apple.quarantine /Applications/AgentTaskPanel.app</div>
+            <button class="copy" type="button" data-copy="#cmdtext" aria-label="复制 Gatekeeper 修复命令" aria-live="polite">复制</button>
+          </div>
+          <div class="note">被 Gatekeeper 拦住时执行一次即可，比每次右键打开省事。</div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-head reveal"><h2>常见问题</h2></div>
+      <div class="reveal">
+        <details><summary>数据会上传吗？</summary><p>不会。面板只读本机的会话文件，服务跑在 <code>127.0.0.1:8765</code>，没有外发请求。</p></details>
+        <details><summary>为什么有些 Agent 只显示「运行中」？</summary><p>Muse、ChatGPT 的任务在厂商服务端执行，本地没有可读的会话文件，只能确认进程在线。</p></details>
+        <details><summary>需要装 Python 吗？</summary><p>用系统自带的 <code>/usr/bin/python3</code>。如果提示需要安装命令行工具，执行 <code>xcode-select --install</code>。</p></details>
+        <details><summary>支持 Windows / Linux 吗？</summary><p>目前只有 macOS 版本。UI 外壳是原生 Swift，跨平台需要重写窗口层，暂不在计划内。</p></details>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap row">
+    <span>© 2026 AgentTaskPanel · 由 <a href="https://lingyi.bio">凌一</a> / <a href="https://github.com/Jascenn">Jascenn</a> 制作</span>
+    <span>MIT License</span>
+    <a href="https://github.com/Jascenn/agent-task-panel">GitHub</a>
+    <a href="https://github.com/Jascenn/agent-task-panel/blob/main/CHANGELOG.md">更新日志</a>
+    <a href="https://github.com/Jascenn/agent-task-panel/issues">反馈问题</a>
+    <span style="margin-left:auto">用 Swift + 一个 Python 小服务写成</span>
+  </div>
+</footer>
+
+<script>
+  // 滚动入场
+  const els = document.querySelectorAll('.reveal');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e, i) => {
+        if (!e.isIntersecting) return;
+        e.target.style.transitionDelay = Math.min(i * 40, 160) + 'ms';
+        e.target.classList.add('in');
+        io.unobserve(e.target);
+      });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+    els.forEach(el => io.observe(el));
+  } else {
+    els.forEach(el => el.classList.add('in'));
+  }
+  // 透明模式预览：点击切换白底 / 深色底
+  document.querySelectorAll('.clear-toggle').forEach(toggle => {
+    const state = toggle.closest('figure').querySelector('.clear-state');
+    const sync = () => {
+      const dark = toggle.getAttribute('aria-pressed') === 'true';
+      state.textContent = dark ? '深色底' : '白底';
+      toggle.setAttribute('aria-label', dark
+        ? '切换透明模式预览：当前为深色底，点击查看白底'
+        : '切换透明模式预览：当前为白底，点击查看深色底');
+    };
+    toggle.addEventListener('click', () => {
+      toggle.setAttribute('aria-pressed', String(toggle.getAttribute('aria-pressed') !== 'true'));
+      sync();
+    });
+    sync();
+  });
+  // 复制命令
+  document.querySelectorAll('.copy').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const text = document.querySelector(btn.dataset.copy).textContent.trim();
+      let copied = false;
+      try {
+        await navigator.clipboard.writeText(text);
+        copied = true;
+      } catch (e) {}
+      if (!copied) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+        document.body.appendChild(ta);
+        ta.select();
+        copied = document.execCommand('copy');
+        ta.remove();
+      }
+      btn.textContent = copied ? '已复制' : '复制失败';
+      setTimeout(() => btn.textContent = '复制', 1600);
+    });
+  });
+</script>
+</body>
+</html>

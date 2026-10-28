@@ -15,17 +15,17 @@
 [![License](https://img.shields.io/badge/license-MIT-111111)](LICENSE)
 ![macOS](https://img.shields.io/badge/macOS-12%2B-000000?logo=apple&logoColor=white)
 
-**[下载最新版](https://github.com/Jascenn/agent-task-panel/releases/latest)** · [功能](#功能) · [支持的 App](#支持的-app) · [从源码构建](#从源码构建) · English · *[README](README.md)*
+**[项目主页](https://agentpanel.lingyi.tools/)** · [下载最新版](https://github.com/Jascenn/agent-task-panel/releases/latest) · [功能](#功能) · [支持的 App](#支持的-app) · [从源码构建](#从源码构建) · English · *[README](README.md)*
 
-| 磨砂模式 | 纯色模式 | 透明模式 |
+| 透明模式 | 纯色模式 | 毛玻璃模式 |
 |---|---|---|
-| ![磨砂](docs/screenshots/screenshot-frost.jpg) | ![纯色](docs/screenshots/screenshot-solid.jpg) | ![透明](docs/screenshots/screenshot-clear.jpg) |
+| ![白底透明](docs/screenshots/screenshot-clear.jpg) | ![纯色](docs/screenshots/screenshot-solid.jpg) | ![毛玻璃](docs/screenshots/screenshot-frost.jpg) |
 
 </div>
 
 ## 安装
 
-1. 从 [Releases](https://github.com/Jascenn/agent-task-panel/releases/latest) 下载最新版 `AgentTaskPanel-vX.Y.Z.dmg`（文件名以 Release 页面为准）
+1. 从 [Releases](https://github.com/Jascenn/agent-task-panel/releases/latest) 下载最新版 `AgentTaskPanel-v0.3.3.dmg`
 2. 打开 DMG，把 🤖 AgentTaskPanel 拖进旁边的 Applications 文件夹
 3. 首次启动会请求通知权限，允许即可
 
@@ -35,12 +35,12 @@
 
 ## 功能
 
-- **实时状态**：会话文件 120 秒内有写入 = 执行中；有完成标记 = 已完成；其余 = 空闲
+- **实时状态**：每个 Agent 按自身回合边界判断执行中/已完成/空闲，自适应超时只用于降级异常挂起
 - **菜单栏常驻**：单色模板图标 + 执行中数量，菜单含显示面板 / 置顶 / 开机自启 / 刷新 / 退出
 - **服务守护**：每 5 秒健康检查本地 API，服务意外退出自动拉起，面板不再卡「未响应」
 - **三态筛选**：点统计卡筛选执行中/已完成/空闲，再点取消
 - **渠道色点**：任务前圆点用各 Agent 专属色，一眼认出来源
-- **三态背景**：毛玻璃 → 全透明 → 纯色；透明模式下红绿灯和按钮自动隐藏，鼠标移入浮现
+- **三态背景**：全透明 → 纯色 → 毛玻璃；透明模式下红绿灯和按钮自动隐藏，鼠标移入浮现
 - **默认鼠标穿透**：面板不吃点击，不挡你浏览其他页面。鼠标划过时淡到 12% 让路但仍穿透；按 ⌥⌘A（或点菜单栏）才恢复交互，鼠标离开 1.2 秒后自动回到穿透
 - **置顶悬浮**：📌 悬浮在所有窗口（含全屏 Space）之上
 - **渠道配置**：⚙️ 勾选哪些 App 显示/隐藏，保存到 `~/.agent-panel-config.json`
