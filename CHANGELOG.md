@@ -10,6 +10,14 @@ All notable changes to this project will be documented in this file.
 - Search discovery files and Cloudflare Pages security/cache headers for the public website.
 - Automatic Cloudflare Pages deployment from GitHub Actions whenever website files under `docs/`
   land on `main`, with a Pages-only API token stored as a repository secret.
+- CodeQL analysis for Swift, Python, and GitHub Actions workflows on pull requests, `main`,
+  and a weekly schedule.
+- Release-package verification for SHA256, DMG contents, code signature, universal architectures,
+  minimum macOS version, and uploaded GitHub Release assets.
+
+### Changed
+- Cloudflare Pages deployment uses `cloudflare/wrangler-action@v4`.
+- Dependabot vulnerability alerts and automated security fixes are enabled.
 
 ## [0.3.3] - 2026-10-28
 

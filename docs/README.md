@@ -12,6 +12,16 @@
 | `dev/STATUS-DETECTION.zh-CN.md` | How running/done/idle is decided per agent / 各渠道任务状态判定规则 |
 | `install/install-notes-template.txt` | Bilingual install guide shipped inside the DMG / DMG 内附带的中英双语安装说明模板 |
 
+## Automation / 自动化
+
+| Workflow / 工作流 | Trigger / 触发条件 | Purpose / 用途 |
+|---|---|---|
+| `.github/workflows/ci.yml` | Pull requests, `main` | Build and verify the app / 构建并校验 App |
+| `.github/workflows/codeql.yml` | Pull requests, `main`, weekly | CodeQL for Python and Actions / 安全扫描 |
+| `.github/workflows/codeql-swift.yml` | Swift changes, `main`, weekly | CodeQL for Swift / Swift 安全扫描 |
+| `.github/workflows/release.yml` | `v*` tags | Build, verify and publish the DMG / 构建、校验并发布 DMG |
+| `.github/workflows/deploy-pages.yml` | `docs/**` on `main` | Deploy the website to Cloudflare Pages / 发布官网 |
+
 ## Deployment / 部署
 
 Changes to this directory are deployed to the existing `agentpanel` Cloudflare Pages project by

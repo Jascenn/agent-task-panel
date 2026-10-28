@@ -1,0 +1,58 @@
+name: CodeQL Swift
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**/*.swift"
+      - ".github/workflows/codeql-swift.yml"
+  pull_request:
+    paths:
+      - "src/**/*.swift"
+      - ".github/workflows/codeql-swift.yml"
+  schedule:
+    - cron: "23 3 1 * *"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+concurrency:
+  group: codeql-swift-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  analyze:
+    name: Analyze Swift
+    runs-on: macos-14
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: swift
+          build-mode: manual
+          queries: security-extended
+
+      # CodeQL traces this compiler invocation; the traced build can take
+      # considerably longer than the normal two-second local build.
+      - name: Build Swift for analysis
+        run: |
+          swiftc --version
+          swiftc src/main.swift -o /tmp/AgentTaskPanel-codeql \
+            -target arm64-apple-macos12.0 \
+            -framework Cocoa -framework WebKit -framework UserNotifications
+          test -x /tmp/AgentTaskPanel-codeql
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:swift

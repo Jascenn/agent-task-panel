@@ -104,6 +104,12 @@ open AgentTaskPanel.app
 （GitHub Secret：`CLOUDFLARE_API_TOKEN`）和账户 ID（GitHub Variable：
 `CLOUDFLARE_ACCOUNT_ID`），仓库内不会保存任何 Cloudflare 凭据。
 
+## 安全自动化
+
+CodeQL 会在 Pull Request、`main` 和每周计划任务中扫描 Swift、Python 与 GitHub Actions。
+Dependabot 漏洞提醒和自动安全修复已启用；发布 tag 前会校验 DMG 的校验和、内容、签名、
+双架构和最低 macOS 版本，上传后还会再次检查 Release 资产。
+
 ## 配置文件
 
 `~/.agent-panel-config.json`（面板 ⚙️ 菜单可视化配置）：
