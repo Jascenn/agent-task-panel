@@ -11,3 +11,12 @@
 | `dev/BUILD-RELEASE.zh-CN.md` | Build, signing & release workflow / 构建、签名与发布流程 |
 | `dev/STATUS-DETECTION.zh-CN.md` | How running/done/idle is decided per agent / 各渠道任务状态判定规则 |
 | `install/install-notes-template.txt` | Bilingual install guide shipped inside the DMG / DMG 内附带的中英双语安装说明模板 |
+
+## Deployment / 部署
+
+Changes to this directory are deployed to the existing `agentpanel` Cloudflare Pages project by
+`.github/workflows/deploy-pages.yml` after they reach `main`. The workflow can also be started
+manually from GitHub Actions.
+
+本目录的改动合并到 `main` 后，由 `.github/workflows/deploy-pages.yml` 自动发布到现有的
+`agentpanel` Cloudflare Pages 项目；也可以在 GitHub Actions 中手动触发。

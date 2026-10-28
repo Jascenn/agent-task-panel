@@ -97,6 +97,13 @@ Requires macOS 12+ (Apple Silicon or Intel) and Xcode Command Line Tools (`xcode
 
 You can also open the panel in a browser at `http://127.0.0.1:8765`.
 
+## Website deployment
+
+Changes under `docs/` are deployed to Cloudflare Pages automatically after they land on `main`.
+The workflow is `.github/workflows/deploy-pages.yml`; it uses a Pages-only API token stored in the
+repository secret `CLOUDFLARE_API_TOKEN` and the account ID stored in the repository variable
+`CLOUDFLARE_ACCOUNT_ID`. No Cloudflare credentials are committed to the repository.
+
 ## Configuration
 
 `~/.agent-panel-config.json` (editable via the panel's ⚙️ menu):
