@@ -46,7 +46,10 @@ jobs:
 
       - name: Build Swift for analysis
         if: matrix.language == 'swift'
-        run: ARCHS=arm64 MIN_MACOS=12.0 zsh scripts/build.sh
+        run: |
+          swiftc src/main.swift -o /tmp/AgentTaskPanel-codeql \
+            -target arm64-apple-macos12.0 \
+            -framework Cocoa -framework WebKit -framework UserNotifications
 
       - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@v4
