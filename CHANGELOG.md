@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- Public project website with a product overview, agent support matrix, installation guide,
+  and an interactive clear-mode preview.
+
 ## [0.3.3] - 2026-10-28
 
 ### Added

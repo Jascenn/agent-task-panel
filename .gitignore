@@ -4,4 +4,5 @@ AgentTaskPanel.app/
 *.zip
 __pycache__/
 .DS_Store
+.wrangler/
 # Icon source is committed via docs/appicon.png; icns is generated locally

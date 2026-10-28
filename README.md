@@ -15,17 +15,17 @@ you get a notification when a task finishes, and clicking a card jumps straight 
 [![License](https://img.shields.io/badge/license-MIT-111111)](LICENSE)
 ![macOS](https://img.shields.io/badge/macOS-12%2B-000000?logo=apple&logoColor=white)
 
-**[Download](https://github.com/Jascenn/agent-task-panel/releases/latest)** · [Features](#features) · [Supported apps](#supported-apps) · [Build from source](#build-from-source) · [简体中文](README.zh-CN.md)
+**[Website](https://agentpanel.lingyi.tools/)** · [Download](https://github.com/Jascenn/agent-task-panel/releases/latest) · [Features](#features) · [Supported apps](#supported-apps) · [Build from source](#build-from-source) · [简体中文](README.zh-CN.md)
 
-| Frost | Solid | Clear |
+| Clear | Solid | Frost |
 |---|---|---|
-| ![Frost](docs/screenshots/screenshot-frost.jpg) | ![Solid](docs/screenshots/screenshot-solid.jpg) | ![Clear](docs/screenshots/screenshot-clear.jpg) |
+| ![Clear on white](docs/screenshots/screenshot-clear.jpg) | ![Solid](docs/screenshots/screenshot-solid.jpg) | ![Frost](docs/screenshots/screenshot-frost.jpg) |
 
 </div>
 
 ## Install
 
-1. Grab the latest `AgentTaskPanel-vX.Y.Z.dmg` from [Releases](https://github.com/Jascenn/agent-task-panel/releases/latest)
+1. Grab the latest `AgentTaskPanel-v0.3.3.dmg` from [Releases](https://github.com/Jascenn/agent-task-panel/releases/latest)
 2. Open the DMG and drag 🤖 AgentTaskPanel into the Applications folder next to it
 3. Allow notifications on first launch — done
 
@@ -35,12 +35,12 @@ The local data service starts with the app, and a 🤖 menu bar item shows how m
 
 ## Features
 
-- **Live status**: a session file written within the last 120 s = running; a completion marker = done; otherwise idle
+- **Live status**: each agent's own turn boundaries decide running / done / idle; an adaptive stale-session timeout only downgrades abandoned runs
 - **Menu bar item**: monochrome template icon with a live running-task count; menu offers show panel / pin / launch-at-login / refresh / quit
 - **Crash-proof data service**: a watchdog health-checks the local API every 5 s and silently relaunches it if it dies
 - **Three-state filters**: click a stat card to filter running / done / idle, click again to clear
 - **Per-agent color dots**: each task carries its agent's accent color, so you can tell sources apart at a glance
-- **Three background modes**: frost → clear → solid; in clear mode the traffic lights and buttons auto-hide and reappear on hover
+- **Three background modes**: clear → solid → frost; in clear mode the traffic lights and buttons auto-hide and reappear on hover
 - **Click-through by default**: the panel never eats your clicks. Hovering it fades to 12% and still passes clicks through; press ⌥⌘A (or the menu bar item) to make it interactive, and it returns to click-through 1.2 s after the pointer leaves
 - **Pin-to-top**: 📌 keeps the panel floating above everything, including full-screen Spaces
 - **Channel visibility**: ⚙️ toggle which apps appear, saved to `~/.agent-panel-config.json`
