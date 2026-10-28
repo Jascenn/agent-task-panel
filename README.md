@@ -104,6 +104,13 @@ The workflow is `.github/workflows/deploy-pages.yml`; it uses a Pages-only API t
 repository secret `CLOUDFLARE_API_TOKEN` and the account ID stored in the repository variable
 `CLOUDFLARE_ACCOUNT_ID`. No Cloudflare credentials are committed to the repository.
 
+## Security automation
+
+CodeQL analyzes Swift, Python and GitHub Actions on pull requests, `main`, and a weekly schedule.
+Dependabot vulnerability alerts and automated security fixes are enabled. Release tags are
+published only after the DMG checksum, contents, signature, architectures and minimum macOS
+version have been verified.
+
 ## Configuration
 
 `~/.agent-panel-config.json` (editable via the panel's ⚙️ menu):

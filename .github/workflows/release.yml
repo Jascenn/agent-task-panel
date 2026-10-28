@@ -41,6 +41,31 @@ jobs:
       - name: Checksum
         run: shasum -a 256 AgentTaskPanel-${{ github.ref_name }}.dmg > SHA256SUMS
 
+      - name: Verify package before publishing
+        run: |
+          set -euo pipefail
+          shasum -a 256 -c SHA256SUMS
+
+          DMG="AgentTaskPanel-${GITHUB_REF_NAME}.dmg"
+          MOUNT_DIR="$(mktemp -d)"
+          cleanup() {
+            hdiutil detach "$MOUNT_DIR" -quiet 2>/dev/null || true
+            rm -rf "$MOUNT_DIR"
+          }
+          trap cleanup EXIT
+
+          hdiutil attach "$DMG" -readonly -nobrowse -mountpoint "$MOUNT_DIR" -quiet
+          test -d "$MOUNT_DIR/AgentTaskPanel.app/Contents/MacOS"
+          test -L "$MOUNT_DIR/Applications"
+          test -f "$MOUNT_DIR/安装说明.txt"
+
+          APP="$MOUNT_DIR/AgentTaskPanel.app"
+          BIN="$APP/Contents/MacOS/AgentTaskPanel"
+          codesign --verify --deep --strict "$APP"
+          lipo -archs "$BIN" | grep -q arm64
+          lipo -archs "$BIN" | grep -q x86_64
+          xcrun vtool -show-build "$BIN" | grep -q "minos 12.0"
+
       - name: Extract release notes from CHANGELOG
         id: notes
         run: |
@@ -56,3 +81,23 @@ jobs:
             SHA256SUMS
           body_path: release-notes.md
           fail_on_unmatched_files: true
+
+      - name: Verify published release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          DOWNLOAD_DIR="$(mktemp -d)"
+          trap 'rm -rf "$DOWNLOAD_DIR"' EXIT
+
+          gh release download "$GITHUB_REF_NAME" --dir "$DOWNLOAD_DIR" --clobber
+          cd "$DOWNLOAD_DIR"
+          shasum -a 256 -c SHA256SUMS
+          test -f "AgentTaskPanel-${GITHUB_REF_NAME}.dmg"
+
+          EXPECTED="$(printf '%s\n' \
+            "AgentTaskPanel-${GITHUB_REF_NAME}.dmg" \
+            "SHA256SUMS" | sort)"
+          ACTUAL="$(gh release view "$GITHUB_REF_NAME" --json assets \
+            --jq '.assets[].name' | sort)"
+          test "$ACTUAL" = "$EXPECTED"
