@@ -5,7 +5,7 @@
 ## 目录
 
 - [日常构建（本机使用）](#日常构建本机使用)
-- [发布新版本（打 tag + DMG + Release）](#发布新版本打-tag--dmg--release)
+- [发布新版本（打 tag + 三平台 Release）](#发布新版本打-tag--三平台-release)
 - [签名说明：ad-hoc vs 正式签名](#签名说明ad-hoc-vs-正式签名)
 - [买了 Apple 开发者账号后要做什么](#买了-apple-开发者账号后要做什么)
 - [常见问题](#常见问题)
@@ -63,19 +63,27 @@ MIN_MACOS=13.0 zsh scripts/build.sh     # 提高最低系统要求
 
 ---
 
-## 发布新版本（打 tag + DMG + Release）
+## 发布新版本（打 tag + 三平台 Release）
 
 前提：本机 `/Applications/AgentTaskPanel.app` 已经是验证过能正常跑的新版本（先走一遍上面的"日常构建"再发布，不要发布没实测的版本）。
 
-### 1. 更新版本号（三处保持一致）
+### 1. 更新版本号（四处保持一致）
 
 ```bash
-# ① Info.plist：CFBundleShortVersionString 和 CFBundleVersion
-vim Info.plist
+# ① macOS Info.plist：CFBundleShortVersionString 和 CFBundleVersion
+vim resources/Info.plist
 
-# ② CHANGELOG.md：在文件顶部加新版本条目
+# ② Windows/Linux desktop/package.json（同时更新 package-lock.json）
+vim desktop/package.json
+
+# ③ CHANGELOG.md：把 [Unreleased] 改为 [0.X.Y] - YYYY-MM-DD
 vim CHANGELOG.md
+
+# ④ 官网结构化数据 docs/index.html 的 softwareVersion
+vim docs/index.html
 ```
+
+发布工作流会再次比对 tag 与 `resources/Info.plist`、`desktop/package.json`，不一致会直接失败。
 
 ### 2. 提交代码并打 tag
 
@@ -90,7 +98,7 @@ vim CHANGELOG.md
 
 ```bash
 # 1. Work on a branch — never on main
-git checkout -b feat/<short-description>
+git switch -c feat/<short-description>
 
 git add -A
 git commit -m "feat: <一句话说明>"
@@ -106,7 +114,7 @@ gh pr merge <PR-number> --squash --delete-branch
 # 4. Realign local main. A squash merge rewrites history, so local main will
 #    diverge (ahead 2, behind 1). Use --soft: never --hard, which would
 #    discard uncommitted work in the working tree.
-git checkout main
+git switch main
 git fetch origin
 git reset --soft origin/main
 
@@ -115,7 +123,20 @@ git tag v0.X.Y
 git push origin v0.X.Y
 ```
 
-### 3. 打 DMG
+### 3. 自动构建三平台安装包
+
+推送 tag 后，`.github/workflows/release.yml` 会在三个原生 Runner 上并行构建：
+
+| Runner | 产物 | 验证 |
+|---|---|---|
+| macOS 14 | `AgentTaskPanel-0.X.Y-macos-universal.dmg` | 签名、双架构、最低 macOS 12、DMG 内容 |
+| Windows latest | `AgentTaskPanel-0.X.Y-win-x64.exe` | NSIS 产物大小、包内后端为 x64 PE |
+| Ubuntu latest | `AgentTaskPanel-0.X.Y-linux-x86_64.AppImage` | 包内后端实际启动、`/api/health` 和页面 200 |
+
+三个构建完成后，`publish` job 会下载全部 artifact，确认恰好有三个安装包，生成合并的
+`SHA256SUMS`，创建 GitHub Release，再下载已发布资产并回查名称和校验和。
+
+### 4. 本地手工打 DMG（仅排障用）
 
 ```bash
 # 先给 /Applications 里已验证的 App 做 ad-hoc 签名（build.sh 已含此步，
@@ -136,29 +157,36 @@ create-dmg --overwrite \
   --icon "AgentTaskPanel.app" 170 190 \
   --icon "安装说明.txt" 320 190 \
   --app-drop-link 470 190 \
-  /tmp/AgentTaskPanel-v0.X.Y.dmg \
+  /tmp/AgentTaskPanel-0.X.Y-macos-universal.dmg \
   /tmp/dmg-stage
 ```
 
-### 4. 验证 DMG（发布前必做）
+### 5. 验证 DMG（手工排障时必做）
 
 ```bash
 # 挂载并确认里面有 App 和 Applications 快捷方式
-hdiutil attach /tmp/AgentTaskPanel-v0.X.Y.dmg -nobrowse -quiet
+hdiutil attach /tmp/AgentTaskPanel-0.X.Y-macos-universal.dmg -nobrowse -quiet
 ls /Volumes/AgentTaskPanel/
 hdiutil detach /Volumes/AgentTaskPanel -quiet
 ```
 
-### 5. 创建 GitHub Release 并上传
+### 6. 手工创建 GitHub Release（仅工作流不可用时）
 
 ```bash
-gh release create v0.X.Y /tmp/AgentTaskPanel-v0.X.Y.dmg \
+gh release create v0.X.Y \
+  /tmp/AgentTaskPanel-0.X.Y-macos-universal.dmg \
+  desktop/dist/AgentTaskPanel-v0.X.Y-win-x64.exe \
+  desktop/dist/AgentTaskPanel-v0.X.Y-linux-x86_64.AppImage \
+  SHA256SUMS \
   --title "v0.X.Y — <标题>" \
   --notes "$(cat <<'EOF'
 <更新内容，参考 CHANGELOG>
 
 ### 下载
-- **AgentTaskPanel-v0.X.Y.dmg**（推荐）：拖拽安装
+- **AgentTaskPanel-0.X.Y-macos-universal.dmg**：macOS 拖拽安装
+- **AgentTaskPanel-0.X.Y-win-x64.exe**：Windows x64 安装包
+- **AgentTaskPanel-0.X.Y-linux-x86_64.AppImage**：Linux x64 AppImage
+- **SHA256SUMS**：三平台安装包校验和
 
 ### 说明
 - 首次打开若提示「无法验证开发者」：右键 App → 打开
@@ -168,6 +196,27 @@ EOF
 # 验证 Release 资产
 gh release view v0.X.Y --json assets --jq '[.assets[] | {name, size}]'
 ```
+
+### 7. 发布后回查
+
+```bash
+TMP="$(mktemp -d)"
+gh release download v0.X.Y --dir "$TMP"
+cd "$TMP"
+sha256sum -c SHA256SUMS
+ls -lh
+```
+
+必须同时看到 DMG、Windows exe、Linux AppImage 和 `SHA256SUMS`。Linux AppImage 必须可执行；
+Windows exe 内的后端必须是 x64 PE；macOS DMG 必须同时含 arm64 与 x86_64。
+
+### 8. 失败排查
+
+- `Version metadata matches` 失败：tag 与两个版本文件不一致，删 tag 修复后重打。
+- Windows 找不到 `win-x64.exe`：检查 `desktop/package.json` 的 NSIS target 和 artifactName。
+- Linux 冒烟测试失败：查看 `backend-smoke.log`，确认 PyInstaller 产物存在且可执行。
+- `Verify asset matrix` 失败：artifact 名称与预期不一致，先修 workflow 再重新打 tag。
+- `Verify published release assets` 失败：Release 资产缺失或 checksum 不一致，不要手工改校验和。
 
 ---
 
@@ -218,7 +267,7 @@ ditto -c -k --keepParent AgentTaskPanel.app /tmp/AgentTaskPanel-notarize.zip
 
 # 提交公证（首次需用 App 专用密码或 API key 登录，按提示存进钥匙串）
 xcrun notarytool submit /tmp/AgentTaskPanel-notarize.zip \
-  --apple-id "你的AppleID" --team-id "TEAMID" --password "app专用密码" \
+  --apple-id "$APPLE_ID" --team-id "$TEAM_ID" --password "$NOTARY_PASSWORD" \
   --wait
 
 # 公证通过后把票据钉进 App

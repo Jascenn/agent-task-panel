@@ -8,7 +8,8 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  macos:
+    name: macOS DMG
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v7
@@ -25,6 +26,7 @@ jobs:
 
       - name: Package DMG
         run: |
+          VERSION="${GITHUB_REF_NAME#v}"
           mkdir -p dmg-stage
           ditto AgentTaskPanel.app dmg-stage/AgentTaskPanel.app
           cp docs/install/install-notes-template.txt "dmg-stage/安装说明.txt"
@@ -36,18 +38,14 @@ jobs:
             --icon "AgentTaskPanel.app" 170 190 \
             --icon "安装说明.txt" 320 190 \
             --app-drop-link 470 190 \
-            AgentTaskPanel-${{ github.ref_name }}.dmg \
+            "AgentTaskPanel-${VERSION}-macos-universal.dmg" \
             dmg-stage
-
-      - name: Checksum
-        run: shasum -a 256 AgentTaskPanel-${{ github.ref_name }}.dmg > SHA256SUMS
 
       - name: Verify package before publishing
         run: |
           set -euo pipefail
-          shasum -a 256 -c SHA256SUMS
-
-          DMG="AgentTaskPanel-${GITHUB_REF_NAME}.dmg"
+          VERSION="${GITHUB_REF_NAME#v}"
+          DMG="AgentTaskPanel-${VERSION}-macos-universal.dmg"
           MOUNT_DIR="$(mktemp -d)"
           cleanup() {
             hdiutil detach "$MOUNT_DIR" -quiet 2>/dev/null || true
@@ -67,19 +65,235 @@ jobs:
           lipo -archs "$BIN" | grep -q x86_64
           xcrun vtool -show-build "$BIN" | grep -q "minos 12.0"
 
+      - name: Upload macOS package
+        uses: actions/upload-artifact@v5
+        with:
+          name: release-macos
+          path: AgentTaskPanel-*-macos-universal.dmg
+          if-no-files-found: error
+
+  windows:
+    name: Windows x64 NSIS
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        working-directory: desktop
+        env:
+          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+          ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
+        run: |
+          npm ci
+          python -m pip install --disable-pip-version-check pyinstaller
+
+      - name: Sync resources
+        working-directory: desktop
+        run: node scripts/sync-resources.mjs
+
+      - name: Test desktop shell
+        working-directory: desktop
+        run: npm test
+
+      - name: Build standalone backend
+        working-directory: desktop
+        run: npm run backend
+
+      - name: Package Windows
+        working-directory: desktop
+        env:
+          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+          ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
+        run: npx electron-builder --win --publish never
+
+      - name: Verify Windows package
+        working-directory: desktop
+        shell: pwsh
+        run: |
+          $version = $env:GITHUB_REF_NAME.TrimStart("v")
+          $installer = "dist/AgentTaskPanel-$version-win-x64.exe"
+          if (-not (Test-Path $installer)) { throw "Installer missing: $installer" }
+          if ((Get-Item $installer).Length -lt 50MB) { throw "Installer is unexpectedly small" }
+
+          $backend = "dist/win-unpacked/resources/app.asar.unpacked/resources/backend/agent-task-backend.exe"
+          if (-not (Test-Path $backend)) { throw "Bundled backend missing: $backend" }
+          $bytes = [System.IO.File]::ReadAllBytes($backend)
+          $peOffset = [BitConverter]::ToUInt16($bytes, 0x3C)
+          if ([BitConverter]::ToUInt16($bytes, $peOffset + 4) -ne 0x8664) {
+            throw "Bundled backend is not x64 PE"
+          }
+
+      - name: Upload Windows package
+        uses: actions/upload-artifact@v5
+        with:
+          name: release-windows
+          path: desktop/dist/AgentTaskPanel-*-win-x64.exe
+          if-no-files-found: error
+
+  linux:
+    name: Linux x64 AppImage
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        working-directory: desktop
+        env:
+          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+          ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
+        run: |
+          npm ci
+          python -m pip install --disable-pip-version-check pyinstaller
+
+      - name: Sync resources
+        working-directory: desktop
+        run: node scripts/sync-resources.mjs
+
+      - name: Test desktop shell
+        working-directory: desktop
+        run: npm test
+
+      - name: Build standalone backend
+        working-directory: desktop
+        run: npm run backend
+
+      - name: Package Linux
+        working-directory: desktop
+        env:
+          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+          ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
+        run: npx electron-builder --linux --publish never
+
+      - name: Smoke-test Linux package
+        working-directory: desktop
+        env:
+          AGENT_PANEL_PORT: "8879"
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          APPIMAGE="dist/AgentTaskPanel-${VERSION}-linux-x86_64.AppImage"
+          test -f "$APPIMAGE"
+          BACKEND=dist/linux-unpacked/resources/app.asar.unpacked/resources/backend/agent-task-backend
+          test -x "$BACKEND"
+          "$BACKEND" >backend-smoke.log 2>&1 &
+          BACKEND_PID=$!
+          trap 'kill "$BACKEND_PID" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 40); do
+            if curl --fail --silent "http://127.0.0.1:${AGENT_PANEL_PORT}/api/health" >health.json; then
+              break
+            fi
+            sleep 0.25
+          done
+          python -c 'import json; data=json.load(open("health.json")); assert data["api_version"] == 1'
+          curl --fail --silent "http://127.0.0.1:${AGENT_PANEL_PORT}/" >panel.html
+          test -s panel.html
+
+      - name: Upload Linux package
+        uses: actions/upload-artifact@v5
+        with:
+          name: release-linux
+          path: desktop/dist/AgentTaskPanel-*-linux-x86_64.AppImage
+          if-no-files-found: error
+
+  publish:
+    name: Publish release assets
+    needs: [macos, windows, linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Verify tag and version metadata
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          python3 - "$VERSION" <<'PY'
+          import json
+          import plistlib
+          import sys
+          from pathlib import Path
+
+          expected = sys.argv[1]
+          plist = plistlib.loads(Path("resources/Info.plist").read_bytes())
+          desktop = json.loads(Path("desktop/package.json").read_text())
+          actual = {
+              "resources/Info.plist": plist["CFBundleShortVersionString"],
+              "desktop/package.json": desktop["version"],
+          }
+          for source, version in actual.items():
+              if version != expected:
+                  raise SystemExit(f"{source} is {version}, tag is {expected}")
+          print(f"Version metadata matches {expected}")
+          PY
+
+      - name: Download packages
+        uses: actions/download-artifact@v5
+        with:
+          path: release
+          pattern: release-*
+          merge-multiple: true
+
+      - name: Verify asset matrix and checksums
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          EXPECTED="$(printf '%s\n' \
+            "AgentTaskPanel-${VERSION}-linux-x86_64.AppImage" \
+            "AgentTaskPanel-${VERSION}-macos-universal.dmg" \
+            "AgentTaskPanel-${VERSION}-win-x64.exe" | sort)"
+          ACTUAL="$(find release -maxdepth 1 -type f -printf '%f\n' | sort)"
+          test "$ACTUAL" = "$EXPECTED"
+          test -f "release/AgentTaskPanel-${VERSION}-linux-x86_64.AppImage"
+          test -f "release/AgentTaskPanel-${VERSION}-macos-universal.dmg"
+          test -f "release/AgentTaskPanel-${VERSION}-win-x64.exe"
+          cd release
+          sha256sum AgentTaskPanel-* > SHA256SUMS
+          sha256sum -c SHA256SUMS
+
       - name: Extract release notes from CHANGELOG
         id: notes
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           awk "/^## \[$VERSION\]/{flag=1;next}/^## \[/{flag=0}flag" CHANGELOG.md > release-notes.md
           if [ ! -s release-notes.md ]; then echo "See CHANGELOG.md for details." > release-notes.md; fi
+          cat >> release-notes.md <<EOF
+
+          ### Downloads
+          - macOS (Universal): \`AgentTaskPanel-${VERSION}-macos-universal.dmg\`
+          - Windows x64: \`AgentTaskPanel-${VERSION}-win-x64.exe\`
+          - Linux x64: \`AgentTaskPanel-${VERSION}-linux-x86_64.AppImage\`
+          - Checksums: \`SHA256SUMS\`
+          EOF
 
       - name: Create release
         uses: softprops/action-gh-release@v3
         with:
           files: |
-            AgentTaskPanel-${{ github.ref_name }}.dmg
-            SHA256SUMS
+            release/AgentTaskPanel-*.AppImage
+            release/AgentTaskPanel-*.dmg
+            release/AgentTaskPanel-*.exe
+            release/SHA256SUMS
           body_path: release-notes.md
           fail_on_unmatched_files: true
 
@@ -88,16 +302,27 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
           DOWNLOAD_DIR="$(mktemp -d)"
           trap 'rm -rf "$DOWNLOAD_DIR"' EXIT
 
-          gh release download "$GITHUB_REF_NAME" --dir "$DOWNLOAD_DIR" --clobber
+          for attempt in $(seq 1 10); do
+            if gh release download "$GITHUB_REF_NAME" --dir "$DOWNLOAD_DIR" --clobber; then
+              break
+            fi
+            sleep 3
+          done
+          test -f "$DOWNLOAD_DIR/SHA256SUMS"
           cd "$DOWNLOAD_DIR"
-          shasum -a 256 -c SHA256SUMS
-          test -f "AgentTaskPanel-${GITHUB_REF_NAME}.dmg"
+          sha256sum -c SHA256SUMS
+          test -f "AgentTaskPanel-${VERSION}-linux-x86_64.AppImage"
+          test -f "AgentTaskPanel-${VERSION}-macos-universal.dmg"
+          test -f "AgentTaskPanel-${VERSION}-win-x64.exe"
 
           EXPECTED="$(printf '%s\n' \
-            "AgentTaskPanel-${GITHUB_REF_NAME}.dmg" \
+            "AgentTaskPanel-${VERSION}-linux-x86_64.AppImage" \
+            "AgentTaskPanel-${VERSION}-macos-universal.dmg" \
+            "AgentTaskPanel-${VERSION}-win-x64.exe" \
             "SHA256SUMS" | sort)"
           ACTUAL="$(gh release view "$GITHUB_REF_NAME" --json assets \
             --jq '.assets[].name' | sort)"

@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.4.0] - 2026-10-29
 
 ### Added
 - Public project website with a product overview, agent support matrix, installation guide,
@@ -10,21 +10,25 @@ All notable changes to this project will be documented in this file.
 - Versioned local API contract for future Windows/Linux clients, including a stable `task_id`,
   machine-readable JSON Schema, and contract tests.
 - Platform runtime abstraction for macOS, Windows, and Linux plus cross-platform backend CI.
-- Experimental Windows x64 / Linux x64 Electron shell that reuses the shared task API and page
-  while the macOS app keeps its native Swift window layer.
+- Windows x64 and Linux x64 desktop builds that reuse the shared task API and panel while the
+  macOS app keeps its native Swift window layer.
+- One release tag now produces macOS, Windows and Linux installers plus a combined
+  `SHA256SUMS` file.
 - Search discovery files and Cloudflare Pages security/cache headers for the public website.
 - Automatic Cloudflare Pages deployment from GitHub Actions whenever website files under `docs/`
   land on `main`, with a Pages-only API token stored as a repository secret.
 - CodeQL analysis for Swift, Python, and GitHub Actions workflows on pull requests, `main`,
   and a weekly schedule.
 - Release-package verification for SHA256, DMG contents, code signature, universal architectures,
-  minimum macOS version, and uploaded GitHub Release assets.
+  minimum macOS version, packaged Windows/Linux backends, and uploaded GitHub Release assets.
 
 ### Changed
 - Cloudflare Pages deployment uses `cloudflare/wrangler-action@v4`.
 - Dependabot vulnerability alerts and automated security fixes are enabled.
 - On Windows and Linux the backend now exposes local-session channels only; macOS-native app
   detection remains isolated behind the platform capability flag.
+- Windows and Linux packages bundle the Python backend with PyInstaller, so users do not need a
+  separate Python installation.
 
 ### Fixed
 - Tasks with identical agent and title no longer overwrite each other's completion-notification

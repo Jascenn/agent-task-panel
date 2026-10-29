@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AgentTaskPanel — macOS AI Agent 任务悬浮面板</title>
-<meta name="description" content="macOS 悬浮任务面板：聚合 Codex、Claude Code、DeepSeek、Cue、Grok、Today 的会话状态，任务一结束就提醒，点一下跳回对应 Agent。">
+<title>AgentTaskPanel — AI Agent 任务悬浮面板（macOS / Windows / Linux）</title>
+<meta name="description" content="跨平台 AI Agent 悬浮任务面板：聚合 Codex、Claude Code、DeepSeek 等会话状态，任务一结束就提醒，点一下跳回对应 Agent。支持 macOS、Windows x64 和 Linux x64。">
 <meta name="author" content="凌一（Jascenn）">
 <meta name="theme-color" content="#f7f3ec">
 <link rel="canonical" href="https://agentpanel.lingyi.tools/">
@@ -14,10 +14,10 @@
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   "name": "AgentTaskPanel",
-  "description": "聚合 Codex、Claude Code、DeepSeek、Cue、Grok 和 Today 会话状态的 macOS 悬浮任务面板。",
+  "description": "聚合 Codex、Claude Code、DeepSeek 等 AI Agent 会话状态的跨平台悬浮任务面板。",
   "applicationCategory": "DeveloperApplication",
-  "operatingSystem": "macOS 12 or later",
-  "softwareVersion": "0.3.3",
+  "operatingSystem": "macOS 12 or later, Windows x64, Linux x64",
+  "softwareVersion": "0.4.0",
   "downloadUrl": "https://github.com/Jascenn/agent-task-panel/releases/latest",
   "codeRepository": "https://github.com/Jascenn/agent-task-panel",
   "author": {
@@ -339,21 +339,21 @@
   <div class="wrap">
     <section class="hero" style="padding-bottom:44px">
       <div class="reveal">
-        <span class="eyebrow"><span class="dot run"></span>macOS · 本地优先 · MIT</span>
+        <span class="eyebrow"><span class="dot run"></span>macOS · Windows · Linux · 本地优先 · MIT</span>
         <h1>不用再猜<br>哪个 Agent <em>还在跑</em>。</h1>
         <p class="lede">
-          一个悬浮小面板，把 Codex、Claude Code、DeepSeek、Cue、Grok、Today 的会话状态收在一起。
+          一个悬浮小面板，把 Codex、Claude Code、DeepSeek 等 Agent 的会话状态收在一起。
           任务结束就提醒，点一下卡片跳回对应的 Agent。
         </p>
         <div class="cta">
           <a class="btn" href="https://github.com/Jascenn/agent-task-panel/releases/latest">
-            下载最新版 <small>DMG</small>
+            下载最新版 <small>v0.4.0</small>
           </a>
           <a class="btn alt" href="https://github.com/Jascenn/agent-task-panel">查看源码</a>
         </div>
         <div class="meta">
-          <span>Universal（Apple Silicon + Intel）</span>
-          <span>macOS 12+</span>
+          <span>macOS Universal</span>
+          <span>Windows / Linux x64</span>
           <span>数据不出本机</span>
         </div>
       </div>
@@ -428,10 +428,10 @@
             <tr><td class="name">Codex</td><td><span class="tag full">完整</span></td><td>标题 · 最近进展 · 回合状态</td><td class="src">~/.codex/sessions/**/*.jsonl</td></tr>
             <tr><td class="name">Claude Code</td><td><span class="tag full">完整</span></td><td>标题 · 最近回复 · stop_reason</td><td class="src">~/.claude/projects/**/*.jsonl</td></tr>
             <tr><td class="name">DeepSeek Harness</td><td><span class="tag full">完整</span></td><td>标题 · 首条提问 · turn 边界</td><td class="src">~/.dsh/sessions/**/session.v4.jsonl.zstd</td></tr>
-            <tr><td class="name">Cue</td><td><span class="tag full">完整</span></td><td>实时工作文本 · agentStatus</td><td class="src">~/Library/Application Support/Cue/SessionStore/sessions.sqlite</td></tr>
-            <tr><td class="name">Grok Bot</td><td><span class="tag full">完整</span></td><td>会话名 · 最近消息</td><td class="src">~/Library/Application Support/Grok Bot/sand-client-persistence/*.blob</td></tr>
-            <tr><td class="name">Today / Today CN</td><td><span class="tag full">完整</span></td><td>会话标题 · 最近活动</td><td class="src">~/Library/Application Support/ai.today.macos.app/chat_*.sqlite</td></tr>
-            <tr><td class="name">Muse / ChatGPT</td><td><span class="tag part">仅在线</span></td><td>任务在服务端执行，本地只能确认进程在</td><td class="src">进程检测</td></tr>
+            <tr><td class="name">Cue</td><td><span class="tag full">完整 · macOS</span></td><td>实时工作文本 · agentStatus</td><td class="src">~/Library/Application Support/Cue/SessionStore/sessions.sqlite</td></tr>
+            <tr><td class="name">Grok Bot</td><td><span class="tag full">完整 · macOS</span></td><td>会话名 · 最近消息</td><td class="src">~/Library/Application Support/Grok Bot/sand-client-persistence/*.blob</td></tr>
+            <tr><td class="name">Today / Today CN</td><td><span class="tag full">完整 · macOS</span></td><td>会话标题 · 最近活动</td><td class="src">~/Library/Application Support/ai.today.macos.app/chat_*.sqlite</td></tr>
+            <tr><td class="name">Muse / ChatGPT</td><td><span class="tag part">仅 macOS 在线检测</span></td><td>任务在服务端执行，本地只能确认进程在</td><td class="src">进程检测</td></tr>
           </tbody>
         </table>
       </div>
@@ -440,17 +440,18 @@
     <section id="install">
       <div class="sec-head reveal">
         <h2>三步装上</h2>
-        <p>不需要开发者账号，ad-hoc 签名即可运行</p>
+        <p>按平台下载；Windows / Linux 无需另外安装 Python</p>
       </div>
       <div class="install">
         <div class="steps reveal">
           <ol>
-            <li>从 <a href="https://github.com/Jascenn/agent-task-panel/releases/latest"><b>Releases</b></a> 下载 <code>AgentTaskPanel-v0.3.3.dmg</code></li>
-            <li>把 App 拖进「应用程序」，双击打开</li>
-            <li>首次启动允许通知权限；提示「无法验证开发者」时右键 → 打开</li>
+            <li><b>macOS</b>：下载 <code>AgentTaskPanel-0.4.0-macos-universal.dmg</code>，把 App 拖进「应用程序」</li>
+            <li><b>Windows x64</b>：下载 <code>AgentTaskPanel-0.4.0-win-x64.exe</code> 并运行安装程序</li>
+            <li><b>Linux x64</b>：下载 <code>AgentTaskPanel-0.4.0-linux-x86_64.AppImage</code>，执行 <code>chmod +x</code> 后启动</li>
           </ol>
           <p style="margin:6px 0 0;font-size:13px;color:var(--ink-3)">
-            升级时直接拖新的进「应用程序」，系统提示就选「替换」。
+            macOS 首次打开若提示「无法验证开发者」：右键 → 打开。Windows 安装包暂未代码签名，
+            SmartScreen 可能要求确认。所有安装包均可对照 <code>SHA256SUMS</code> 校验。
           </p>
         </div>
         <div class="term reveal">
@@ -470,7 +471,7 @@
         <details><summary>数据会上传吗？</summary><p>不会。面板只读本机的会话文件，服务跑在 <code>127.0.0.1:8765</code>，没有外发请求。</p></details>
         <details><summary>为什么有些 Agent 只显示「运行中」？</summary><p>Muse、ChatGPT 的任务在厂商服务端执行，本地没有可读的会话文件，只能确认进程在线。</p></details>
         <details><summary>需要装 Python 吗？</summary><p>用系统自带的 <code>/usr/bin/python3</code>。如果提示需要安装命令行工具，执行 <code>xcode-select --install</code>。</p></details>
-        <details><summary>支持 Windows / Linux 吗？</summary><p>目前稳定版仅支持 macOS。跨平台的共享 API 契约已经开始落地，窗口层、安装包和平台测试路线记录在 <a href="https://github.com/Jascenn/agent-task-panel/issues/15">Issue #15</a>。</p></details>
+        <details><summary>支持 Windows / Linux 吗？</summary><p>支持 Windows x64 和 Linux x64，安装包与 macOS 同版本发布。Windows/Linux 目前只显示本地会话型 Agent（Codex、Claude Code、DeepSeek）；Cue、Grok Bot、Today 等 macOS App 型渠道会隐藏。暂不提供 Windows ARM64。</p></details>
       </div>
     </section>
   </div>
@@ -483,7 +484,7 @@
     <a href="https://github.com/Jascenn/agent-task-panel">GitHub</a>
     <a href="https://github.com/Jascenn/agent-task-panel/blob/main/CHANGELOG.md">更新日志</a>
     <a href="https://github.com/Jascenn/agent-task-panel/issues">反馈问题</a>
-    <span style="margin-left:auto">用 Swift + 一个 Python 小服务写成</span>
+    <span style="margin-left:auto">macOS 用 Swift，Windows / Linux 用 Electron，共用 Python 本地服务</span>
   </div>
 </footer>
 
