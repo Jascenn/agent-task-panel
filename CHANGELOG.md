@@ -7,6 +7,8 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Public project website with a product overview, agent support matrix, installation guide,
   and an interactive clear-mode preview.
+- Versioned local API contract for future Windows/Linux clients, including a stable `task_id`,
+  machine-readable JSON Schema, and contract tests.
 - Search discovery files and Cloudflare Pages security/cache headers for the public website.
 - Automatic Cloudflare Pages deployment from GitHub Actions whenever website files under `docs/`
   land on `main`, with a Pages-only API token stored as a repository secret.
@@ -18,6 +20,10 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - Cloudflare Pages deployment uses `cloudflare/wrangler-action@v4`.
 - Dependabot vulnerability alerts and automated security fixes are enabled.
+
+### Fixed
+- Tasks with identical agent and title no longer overwrite each other's completion-notification
+  state; transitions now use a stable `task_id`.
 
 ## [0.3.3] - 2026-10-28
 

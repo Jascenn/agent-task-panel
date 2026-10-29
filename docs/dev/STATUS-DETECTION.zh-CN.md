@@ -33,7 +33,7 @@ Grok 的 blob 里没有 role/完成字段（实测 `awaitingUserResponse` 全为
 
 ## 通知
 
-服务端 `_prev_status` 对比上一轮状态，`running → done` 才进入 `finished` 数组，
+服务端 `_prev_tasks` 按稳定 `task_id` 对比上一轮状态，`running → done` 才进入 `finished` 数组，
 每条只发一次；前端只负责弹窗。这样面板窗口关闭（WKWebView 节流）也不会漏发。
 
 ## 已知噪音与过滤
