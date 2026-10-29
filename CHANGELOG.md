@@ -10,8 +10,8 @@ All notable changes to this project will be documented in this file.
 - Versioned local API contract for future Windows/Linux clients, including a stable `task_id`,
   machine-readable JSON Schema, and contract tests.
 - Platform runtime abstraction for macOS, Windows, and Linux plus cross-platform backend CI.
-- Experimental Windows/Linux Electron shell that reuses the shared task API and page while the
-  macOS app keeps its native Swift window layer.
+- Experimental Windows x64 / Linux x64 Electron shell that reuses the shared task API and page
+  while the macOS app keeps its native Swift window layer.
 - Search discovery files and Cloudflare Pages security/cache headers for the public website.
 - Automatic Cloudflare Pages deployment from GitHub Actions whenever website files under `docs/`
   land on `main`, with a Pages-only API token stored as a repository secret.

@@ -71,5 +71,8 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: AgentTaskPanel-${{ matrix.target }}
-          path: desktop/dist/*
+          path: |
+            desktop/dist/*.AppImage
+            desktop/dist/*.exe
+            desktop/dist/*.blockmap
           if-no-files-found: error
