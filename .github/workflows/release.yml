@@ -19,6 +19,7 @@ jobs:
       - name: Verify app bundle
         run: |
           test -d AgentTaskPanel.app/Contents/MacOS
+          test -f AgentTaskPanel.app/Contents/Resources/platforms.py
           test -f AgentTaskPanel.app/Contents/Resources/server.py
           codesign --verify --deep AgentTaskPanel.app
 

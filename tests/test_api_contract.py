@@ -1,13 +1,16 @@
 import importlib.util
 import pathlib
+import sys
 import unittest
 from unittest import mock
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
 SPEC = importlib.util.spec_from_file_location("agent_panel_server", ROOT / "src/server.py")
 server = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(server)
+from platforms import detect_runtime
 
 
 class NormalizeTaskTests(unittest.TestCase):
@@ -107,6 +110,13 @@ class TasksResponseTests(unittest.TestCase):
             "agent": "codex",
             "title": "好",
         }])
+
+
+class PlatformGuardTests(unittest.TestCase):
+    def test_native_apps_are_skipped_outside_macos(self):
+        runtime = detect_runtime(system="Linux", home="/tmp/example")
+        with mock.patch.object(server, "RUNTIME", runtime):
+            self.assertEqual(server.scan_apps(), [])
 
 
 if __name__ == "__main__":
