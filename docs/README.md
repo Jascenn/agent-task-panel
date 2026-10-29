@@ -9,8 +9,10 @@
 | `screenshots/social-card.png` | 1200×630 Open Graph preview / 社交分享预览图 |
 | `appicon.png` `appicon-256.png` | App icon renders / App 图标渲染图 |
 | `dev/BUILD-RELEASE.zh-CN.md` | Build, signing & release workflow / 构建、签名与发布流程 |
+| `dev/API-CONTRACT.zh-CN.md` | Versioned local API contract for desktop clients / 桌面客户端本地 API 契约 |
 | `dev/STATUS-DETECTION.zh-CN.md` | How running/done/idle is decided per agent / 各渠道任务状态判定规则 |
 | `install/install-notes-template.txt` | Bilingual install guide shipped inside the DMG / DMG 内附带的中英双语安装说明模板 |
+| `api/tasks-v1.schema.json` | Machine-readable tasks response schema / 任务 API 的机器可读 Schema |
 
 ## Automation / 自动化
 

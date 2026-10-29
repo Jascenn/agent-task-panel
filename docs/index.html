@@ -470,7 +470,7 @@
         <details><summary>数据会上传吗？</summary><p>不会。面板只读本机的会话文件，服务跑在 <code>127.0.0.1:8765</code>，没有外发请求。</p></details>
         <details><summary>为什么有些 Agent 只显示「运行中」？</summary><p>Muse、ChatGPT 的任务在厂商服务端执行，本地没有可读的会话文件，只能确认进程在线。</p></details>
         <details><summary>需要装 Python 吗？</summary><p>用系统自带的 <code>/usr/bin/python3</code>。如果提示需要安装命令行工具，执行 <code>xcode-select --install</code>。</p></details>
-        <details><summary>支持 Windows / Linux 吗？</summary><p>目前只有 macOS 版本。UI 外壳是原生 Swift，跨平台需要重写窗口层，暂不在计划内。</p></details>
+        <details><summary>支持 Windows / Linux 吗？</summary><p>目前稳定版仅支持 macOS。跨平台的共享 API 契约已经开始落地，窗口层、安装包和平台测试路线记录在 <a href="https://github.com/Jascenn/agent-task-panel/issues/15">Issue #15</a>。</p></details>
       </div>
     </section>
   </div>

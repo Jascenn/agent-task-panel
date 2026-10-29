@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # 本地任务聚合服务：扫描 Codex / Claude Code 会话，输出 JSON
-import json, os, glob, time, re, struct, sqlite3, subprocess, datetime
+import json, os, glob, time, re, struct, sqlite3, subprocess, datetime, hashlib
 import sys
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse
@@ -13,6 +13,8 @@ DSH_DIR = os.path.join(HOME, ".dsh/sessions")
 PIN_FLAG = os.path.join(HOME, ".agent-panel-pin")
 CONFIG_PATH = os.path.join(HOME, ".agent-panel-config.json")
 PID_PATH = os.path.join(HOME, ".agent-panel-server.pid")
+API_VERSION = 1
+TASK_STATUSES = {"running", "done", "idle"}
 
 # 构建标识：App 启动时用同一个算法算自己 bundle 里 server.py 的指纹并传进来。
 # 端口上若跑着指纹不同的旧进程（重装后常见），App 会杀掉它再拉起新服务，
@@ -44,13 +46,45 @@ ZOMBIE_DEFAULT = 900     # 历史样本不足时的兜底
 
 _cache = {"data": [], "mtime": 0.0}   # 短缓存，避免轮询间隔重复扫描
 # 完成通知：服务端对比 running→done，避免面板关窗时 WKWebView 节流漏发
-_prev_status = {}
+# 完成通知按稳定 task_id 对比，避免同一 Agent 下重复标题互相覆盖。
+_prev_tasks = {}
 
 # 增量缓存：文件路径 -> (mtime, 解析结果)；未变化的文件直接复用
 _file_cache = {"codex": {}, "claude": {}, "dsh": {}}
 
 def first_text(text):
     return re.sub(r"\s+", " ", str(text)).strip()[:60]
+
+
+def normalize_task(task):
+    """把各渠道的扫描结果收敛成跨平台客户端可依赖的任务契约。"""
+    agent = str(task.get("agent") or "").strip()
+    if not agent:
+        return None
+    title = first_text(task.get("title") or "") or "未命名任务"
+    cwd = str(task.get("cwd") or "")
+    link = str(task.get("link") or "")
+    status = str(task.get("status") or "idle")
+    if status not in TASK_STATUSES:
+        status = "idle"
+    try:
+        mtime = float(task.get("mtime") or 0)
+    except (TypeError, ValueError):
+        mtime = 0.0
+    identity = "\x1f".join((agent, link, cwd, title))
+    normalized = {
+        **task,
+        "task_id": hashlib.sha256(identity.encode("utf-8")).hexdigest()[:16],
+        "agent": agent,
+        "title": title,
+        "cwd": cwd,
+        "status": status,
+        "mtime": mtime,
+        "link": link,
+        "recent": str(task.get("recent") or ""),
+        "recent_at": str(task.get("recent_at") or ""),
+    }
+    return normalized
 
 
 def parse_ts(value):
@@ -611,6 +645,7 @@ def tasks():
         data = _cache["data"]
     else:
         all_t = scan_codex() + scan_claude() + scan_apps() + scan_dsh()
+        all_t = [t for t in (normalize_task(task) for task in all_t) if t is not None]
         all_t.sort(key=lambda x: -x["mtime"])
         _cache["data"] = all_t
         _cache["mtime"] = now
@@ -618,19 +653,23 @@ def tasks():
     hidden = set(load_config().get("hidden", []))
     visible = [t for t in data if t["agent"] not in hidden]
     # 状态对比用全量数据（隐藏渠道也该发完成通知）
-    now_key = {}
+    now_tasks = {}
     for t in data:
-        now_key[t["agent"] + "|" + t["title"]] = t["status"]
+        now_tasks[t["task_id"]] = t
     finished = []
-    for k, st in _prev_status.items():
-        if st == "running" and now_key.get(k) == "done":
-            agent = k.split("|", 1)[0]
-            title = k.split("|", 1)[1]
+    for task_id, previous in _prev_tasks.items():
+        current = now_tasks.get(task_id)
+        if previous["status"] == "running" and current and current["status"] == "done":
+            agent = current["agent"]
             if agent not in hidden:
-                finished.append({"agent": agent, "title": title})
-    _prev_status.clear()
-    _prev_status.update(now_key)
-    return {"tasks": visible, "finished": finished}
+                finished.append({
+                    "task_id": task_id,
+                    "agent": agent,
+                    "title": current["title"],
+                })
+    _prev_tasks.clear()
+    _prev_tasks.update({t["task_id"]: t for t in data})
+    return {"api_version": API_VERSION, "tasks": visible, "finished": finished}
 
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):
@@ -651,9 +690,19 @@ class Handler(BaseHTTPRequestHandler):
             result = tasks()
             self._send(200, json.dumps({**result, "pin": os.path.exists(PIN_FLAG)}))
         elif path == "/api/config":
-            self._send(200, json.dumps({"agents": ALL_AGENTS, **load_config()}))
+            self._send(200, json.dumps({
+                "api_version": API_VERSION,
+                "agents": ALL_AGENTS,
+                **load_config(),
+            }))
         elif path == "/api/health":
-            self._send(200, json.dumps({"pid": os.getpid(), "build": BUILD_ID}))
+            platform = "macos" if sys.platform == "darwin" else sys.platform
+            self._send(200, json.dumps({
+                "api_version": API_VERSION,
+                "platform": platform,
+                "pid": os.getpid(),
+                "build": BUILD_ID,
+            }))
         else:
             self._send(404, "{}")
     def do_POST(self):

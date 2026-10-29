@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentpanel.pages.dev/api/tasks-v1.schema.json",
+  "title": "AgentTaskPanel tasks response",
+  "type": "object",
+  "required": ["api_version", "tasks", "finished", "pin"],
+  "properties": {
+    "api_version": {
+      "const": 1
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/task"
+      }
+    },
+    "finished": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["task_id", "agent", "title"],
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{16}$"
+          },
+          "agent": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "pin": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "task": {
+      "type": "object",
+      "required": [
+        "task_id",
+        "agent",
+        "title",
+        "cwd",
+        "status",
+        "mtime",
+        "link",
+        "recent",
+        "recent_at"
+      ],
+      "properties": {
+        "task_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{16}$"
+        },
+        "agent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cwd": {
+          "type": "string"
+        },
+        "status": {
+          "enum": ["running", "done", "idle"]
+        },
+        "mtime": {
+          "type": "number",
+          "minimum": 0
+        },
+        "link": {
+          "type": "string"
+        },
+        "recent": {
+          "type": "string"
+        },
+        "recent_at": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}
