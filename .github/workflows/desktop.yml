@@ -1,0 +1,114 @@
+name: Desktop cross-platform
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Package on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux
+          - os: windows-latest
+            target: win
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        working-directory: desktop
+        env:
+          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+          ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
+        run: |
+          npm ci
+          python -m pip install --disable-pip-version-check pyinstaller
+
+      - name: Sync shared resources
+        working-directory: desktop
+        run: node scripts/sync-resources.mjs
+
+      - name: Run desktop tests
+        working-directory: desktop
+        run: npm test
+
+      - name: Build standalone backend
+        working-directory: desktop
+        run: npm run backend
+
+      - name: Package ${{ matrix.target }}
+        working-directory: desktop
+        env:
+          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+          ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
+        run: npx electron-builder --${{ matrix.target }} --publish never
+
+      - name: Smoke-test packaged Linux backend
+        if: matrix.target == 'linux'
+        working-directory: desktop
+        env:
+          AGENT_PANEL_PORT: "8879"
+        run: |
+          set -euo pipefail
+          BACKEND=dist/linux-unpacked/resources/app.asar.unpacked/resources/backend/agent-task-backend
+          test -x "$BACKEND"
+          "$BACKEND" >backend-smoke.log 2>&1 &
+          BACKEND_PID=$!
+          trap 'kill "$BACKEND_PID" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 40); do
+            if curl --fail --silent "http://127.0.0.1:${AGENT_PANEL_PORT}/api/health" >health.json; then
+              break
+            fi
+            sleep 0.25
+          done
+          python -c 'import json; data=json.load(open("health.json")); assert data["api_version"] == 1'
+          curl --fail --silent "http://127.0.0.1:${AGENT_PANEL_PORT}/" >panel.html
+          test -s panel.html
+
+      - name: Inspect packaged Windows backend
+        if: matrix.target == 'win'
+        working-directory: desktop
+        shell: pwsh
+        run: |
+          $backend = "dist/win-unpacked/resources/app.asar.unpacked/resources/backend/agent-task-backend.exe"
+          if (-not (Test-Path $backend)) { throw "Bundled backend missing: $backend" }
+          $bytes = [System.IO.File]::ReadAllBytes($backend)
+          if ($bytes.Length -lt 1MB) { throw "Bundled backend is unexpectedly small" }
+          $machine = [BitConverter]::ToUInt16($bytes, 0x3C)
+          if ([BitConverter]::ToUInt16($bytes, $machine + 4) -ne 0x8664) {
+            throw "Bundled backend is not x64 PE"
+          }
+
+      - name: Upload package
+        uses: actions/upload-artifact@v5
+        with:
+          name: AgentTaskPanel-${{ matrix.target }}
+          path: |
+            desktop/dist/*.AppImage
+            desktop/dist/*.exe
+            desktop/dist/*.blockmap
+          if-no-files-found: error

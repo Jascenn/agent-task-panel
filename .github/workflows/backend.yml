@@ -32,3 +32,10 @@ jobs:
 
       - name: Compile backend
         run: python -m py_compile src/server.py src/platforms.py
+
+      - name: Check desktop shared resources
+        run: node desktop/scripts/sync-resources.mjs
+
+      - name: Run desktop source tests
+        working-directory: desktop
+        run: node --test
