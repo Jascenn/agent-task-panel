@@ -23,7 +23,7 @@
 | `.github/workflows/desktop.yml` | Pull requests, `main` | Windows/Linux Electron package smoke build / 桌面安装包冒烟构建 |
 | `.github/workflows/codeql.yml` | Pull requests, `main`, weekly | CodeQL for Python and Actions / 安全扫描 |
 | `.github/workflows/codeql-swift.yml` | Swift changes, `main`, weekly | CodeQL for Swift / Swift 安全扫描 |
-| `.github/workflows/release.yml` | `v*` tags | Build, verify and publish the DMG / 构建、校验并发布 DMG |
+| `.github/workflows/release.yml` | `v*` tags | Build, verify and publish macOS, Windows and Linux packages / 构建、校验并发布三平台安装包 |
 | `.github/workflows/deploy-pages.yml` | `docs/**` on `main` | Deploy the website to Cloudflare Pages / 发布官网 |
 
 ## Deployment / 部署

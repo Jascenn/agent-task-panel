@@ -7,13 +7,15 @@
 ### One floating panel for every AI Agent's task status
 
 **Where is Codex? Did Claude Code finish?**<br>
-Stop alt-tabbing. One always-on panel aggregates every AI agent's session state on your Mac —<br>
+Stop alt-tabbing. One always-on panel aggregates every AI agent's session state —<br>
 you get a notification when a task finishes, and clicking a card jumps straight back to that agent.
 
 [![Release](https://img.shields.io/github/v/release/Jascenn/agent-task-panel?label=release&color=111111)](https://github.com/Jascenn/agent-task-panel/releases/latest)
 [![Stars](https://img.shields.io/github/stars/Jascenn/agent-task-panel?style=flat&color=111111)](https://github.com/Jascenn/agent-task-panel/stargazers)
 [![License](https://img.shields.io/badge/license-MIT-111111)](LICENSE)
 ![macOS](https://img.shields.io/badge/macOS-12%2B-000000?logo=apple&logoColor=white)
+![Windows](https://img.shields.io/badge/Windows-x64-000000?logo=windows&logoColor=white)
+![Linux](https://img.shields.io/badge/Linux-x64-000000?logo=linux&logoColor=white)
 
 **[Website](https://agentpanel.lingyi.tools/)** · [Download](https://github.com/Jascenn/agent-task-panel/releases/latest) · [Features](#features) · [Supported apps](#supported-apps) · [Build from source](#build-from-source) · [简体中文](README.zh-CN.md)
 
@@ -25,13 +27,30 @@ you get a notification when a task finishes, and clicking a card jumps straight 
 
 ## Install
 
-1. Grab the latest `AgentTaskPanel-v0.3.3.dmg` from [Releases](https://github.com/Jascenn/agent-task-panel/releases/latest)
-2. Open the DMG and drag 🤖 AgentTaskPanel into the Applications folder next to it
-3. Allow notifications on first launch — done
+Download the package for your platform from [Releases](https://github.com/Jascenn/agent-task-panel/releases/latest):
 
-The local data service starts with the app, and a 🤖 menu bar item shows how many tasks are running right now. An install guide (English & 中文) is included inside the DMG.
+| Platform | Package |
+|---|---|
+| macOS 12+ | `AgentTaskPanel-0.4.0-macos-universal.dmg` |
+| Windows x64 | `AgentTaskPanel-0.4.0-win-x64.exe` |
+| Linux x64 | `AgentTaskPanel-0.4.0-linux-x86_64.AppImage` |
 
-> The app is ad-hoc signed (no paid Apple certificate). If macOS says it "cannot be verified": right-click the app → Open, or run `xattr -dr com.apple.quarantine /Applications/AgentTaskPanel.app`.
+**macOS**: open the DMG and drag 🤖 AgentTaskPanel into Applications. If macOS says it
+"cannot be verified", right-click the app → Open, or run
+`xattr -dr com.apple.quarantine /Applications/AgentTaskPanel.app`.
+
+**Windows**: run the installer. SmartScreen may ask you to confirm because the build is not
+code-signed.
+
+**Linux**: make the AppImage executable, then launch it:
+
+```bash
+chmod +x AgentTaskPanel-0.4.0-linux-x86_64.AppImage
+./AgentTaskPanel-0.4.0-linux-x86_64.AppImage
+```
+
+The local data service starts with the app. On macOS, a 🤖 menu bar item shows the number of
+running tasks; Windows and Linux have a tray icon. All builds verify `SHA256SUMS` before release.
 
 ## Features
 
@@ -48,12 +67,12 @@ The local data service starts with the app, and a 🤖 menu bar item shows how m
 - **Finish notifications**: a system notification fires when a task transitions running → done
 - **Launch at login**: one toggle in the menu, implemented as a LaunchAgent
 
-## What's new in v0.3.3
+## What's new in v0.4.0
 
-- **Accurate status**: each agent's own turn boundaries decide running / done / idle — no more 120-second guesswork that reported long builds as finished
-- **No more phantom tasks**: Claude Code sub-agent transcripts and workflow-harness sessions are filtered out
-- **Universal build**: one DMG runs on Apple Silicon and Intel, minimum macOS 12
-- **No stale data after upgrade**: the panel detects a leftover server from the previous version and replaces it
+- **Three platforms, one release**: macOS Universal DMG, Windows x64 installer, and Linux x64 AppImage are built from the same tag
+- **Bundled backend**: Windows and Linux packages include the Python service, so no separate Python install is required
+- **Shared task contract**: desktop clients use the versioned local API and the same task state rules as macOS
+- **Verified downloads**: every release includes `SHA256SUMS` and is checked after upload
 
 → Full history: [CHANGELOG.md](CHANGELOG.md)
 
@@ -80,11 +99,17 @@ The local data service starts with the app, and a 🤖 menu bar item shows how m
 
 "Full" = the panel reads local session files and shows real task titles plus recent activity.
 
+Cue, Grok Bot, Today, Muse and ChatGPT are macOS-only. On Windows and Linux, only Codex,
+Claude Code and DeepSeek Harness are shown because the other channels depend on macOS-specific
+storage or URL schemes.
+
 ## Privacy
 
 The panel only **reads** the paths listed above to infer session state. It never writes to them, never uploads anything, and works fully offline. The only network endpoint is `127.0.0.1:8765` — its own local API.
 
 ## Build from source
+
+**macOS (native Swift app)**
 
 ```bash
 git clone https://github.com/Jascenn/agent-task-panel.git
@@ -97,6 +122,21 @@ Requires macOS 12+ (Apple Silicon or Intel) and Xcode Command Line Tools (`xcode
 
 You can also open the panel in a browser at `http://127.0.0.1:8765`.
 
+**Windows / Linux (Electron shell)**
+
+```bash
+cd desktop
+npm ci
+python3 -m pip install pyinstaller
+node scripts/sync-resources.mjs
+npm run backend
+npm test
+npm run dist
+```
+
+Requires Node.js 22.12+ and Python 3.12. Packages are written to `desktop/dist/`. Build the
+Windows installer on Windows and the AppImage on Linux.
+
 ## Website deployment
 
 Changes under `docs/` are deployed to Cloudflare Pages automatically after they land on `main`.
@@ -108,8 +148,8 @@ repository secret `CLOUDFLARE_API_TOKEN` and the account ID stored in the reposi
 
 CodeQL analyzes Swift, Python and GitHub Actions on pull requests, `main`, and a weekly schedule.
 Dependabot vulnerability alerts and automated security fixes are enabled. Release tags are
-published only after the DMG checksum, contents, signature, architectures and minimum macOS
-version have been verified.
+published only after all three platform packages, bundled backends, and the combined checksums
+have been verified.
 
 ## Configuration
 
@@ -124,6 +164,7 @@ version have been verified.
 - Muse / ChatGPT execute tasks server-side, so only "app online" can be shown — no local task detail exists
 - Session titles come from the first user message; injected system context (AGENTS.md etc.) is filtered out
 - The app is ad-hoc signed; Developer ID signing + notarization is planned once there's an Apple developer account
+- Windows and Linux support x64 only; Windows ARM64 is not currently published
 
 ## Docs
 
