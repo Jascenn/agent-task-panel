@@ -4,15 +4,18 @@ import json, os, glob, time, re, struct, sqlite3, subprocess, datetime, hashlib
 import sys
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse
+from platforms import detect_runtime
+
 HTML_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "agent-task-dashboard.html")
 
-HOME = os.path.expanduser("~")
-CODEX_DIR = os.path.join(HOME, ".codex/sessions")
-CLAUDE_DIR = os.path.join(HOME, ".claude/projects")
-DSH_DIR = os.path.join(HOME, ".dsh/sessions")
-PIN_FLAG = os.path.join(HOME, ".agent-panel-pin")
-CONFIG_PATH = os.path.join(HOME, ".agent-panel-config.json")
-PID_PATH = os.path.join(HOME, ".agent-panel-server.pid")
+RUNTIME = detect_runtime()
+HOME = RUNTIME.home
+CODEX_DIR = RUNTIME.codex_dir
+CLAUDE_DIR = RUNTIME.claude_dir
+DSH_DIR = RUNTIME.dsh_dir
+PIN_FLAG = RUNTIME.pin_flag
+CONFIG_PATH = RUNTIME.config_path
+PID_PATH = RUNTIME.pid_path
 API_VERSION = 1
 TASK_STATUSES = {"running", "done", "idle"}
 
@@ -156,10 +159,15 @@ APP_AGENTS = {
     "Today 2": ("Today 国内", "today://", False),
 }
 
-# 全渠道清单（配置面板用）：即使当前无任务也应可配置
-ALL_AGENTS = [
+# 本地会话型渠道在所有平台可用。
+BASE_AGENTS = [
     {"id": "codex", "name": "Codex"},
     {"id": "claude", "name": "Claude Code"},
+    {"id": "deepseek", "name": "DeepSeek Harness"},
+]
+
+# 这些条目依赖 macOS 应用目录和进程名。
+NATIVE_APP_AGENTS = [
     {"id": "chatgpt", "name": "ChatGPT"},
     {"id": "grok-bot", "name": "Grok Bot"},
     {"id": "muse", "name": "Muse"},
@@ -167,10 +175,21 @@ ALL_AGENTS = [
     {"id": "today", "name": "Today（单版本时）"},
     {"id": "today-intl", "name": "Today Intl"},
     {"id": "today-cn", "name": "Today CN"},
-    {"id": "deepseek", "name": "DeepSeek Harness"},
 ]
 
+def all_agents(runtime=RUNTIME):
+    agents = list(BASE_AGENTS)
+    if runtime.supports_native_apps:
+        agents.extend(NATIVE_APP_AGENTS)
+    return agents
+
+
+# 全渠道清单（配置面板用）：即使当前无任务也应可配置
+ALL_AGENTS = all_agents()
+
 def proc_alive(name):
+    if not RUNTIME.supports_native_apps:
+        return False
     r = subprocess.run(["pgrep", "-x", name], capture_output=True)
     if r.returncode == 0:
         return True
@@ -292,6 +311,8 @@ def scan_grok():
     return out
 
 def scan_apps():
+    if not RUNTIME.supports_native_apps:
+        return []
     out = []
     today_intl_alive = proc_alive("Today")
     today_cn_alive = proc_alive("Today 2")
@@ -696,10 +717,9 @@ class Handler(BaseHTTPRequestHandler):
                 **load_config(),
             }))
         elif path == "/api/health":
-            platform = "macos" if sys.platform == "darwin" else sys.platform
             self._send(200, json.dumps({
                 "api_version": API_VERSION,
-                "platform": platform,
+                "platform": RUNTIME.id,
                 "pid": os.getpid(),
                 "build": BUILD_ID,
             }))

@@ -56,7 +56,8 @@
 
 ## `GET /api/health`
 
-返回 `api_version`、`platform`、`pid` 和构建指纹 `build`。
+返回 `api_version`、`platform`、`pid` 和构建指纹 `build`。`platform` 当前取值是
+`macos`、`windows` 或 `linux`。
 
 ## 兼容规则
 

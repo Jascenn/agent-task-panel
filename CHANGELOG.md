@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
   and an interactive clear-mode preview.
 - Versioned local API contract for future Windows/Linux clients, including a stable `task_id`,
   machine-readable JSON Schema, and contract tests.
+- Platform runtime abstraction for macOS, Windows, and Linux plus cross-platform backend CI.
 - Search discovery files and Cloudflare Pages security/cache headers for the public website.
 - Automatic Cloudflare Pages deployment from GitHub Actions whenever website files under `docs/`
   land on `main`, with a Pages-only API token stored as a repository secret.
@@ -20,6 +21,8 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - Cloudflare Pages deployment uses `cloudflare/wrangler-action@v4`.
 - Dependabot vulnerability alerts and automated security fixes are enabled.
+- On Windows and Linux the backend now exposes local-session channels only; macOS-native app
+  detection remains isolated behind the platform capability flag.
 
 ### Fixed
 - Tasks with identical agent and title no longer overwrite each other's completion-notification

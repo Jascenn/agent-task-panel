@@ -21,6 +21,7 @@ jobs:
         run: |
           test -d AgentTaskPanel.app/Contents/MacOS
           test -f AgentTaskPanel.app/Contents/Resources/server.py
+          test -f AgentTaskPanel.app/Contents/Resources/platforms.py
           test -f AgentTaskPanel.app/Contents/Resources/agent-task-dashboard.html
           codesign --verify --deep AgentTaskPanel.app
 

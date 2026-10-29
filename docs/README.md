@@ -19,6 +19,7 @@
 | Workflow / 工作流 | Trigger / 触发条件 | Purpose / 用途 |
 |---|---|---|
 | `.github/workflows/ci.yml` | Pull requests, `main` | Build and verify the app / 构建并校验 App |
+| `.github/workflows/backend.yml` | Pull requests, `main` | Backend tests on macOS, Windows and Linux / 三平台后端测试 |
 | `.github/workflows/codeql.yml` | Pull requests, `main`, weekly | CodeQL for Python and Actions / 安全扫描 |
 | `.github/workflows/codeql-swift.yml` | Swift changes, `main`, weekly | CodeQL for Swift / Swift 安全扫描 |
 | `.github/workflows/release.yml` | `v*` tags | Build, verify and publish the DMG / 构建、校验并发布 DMG |
