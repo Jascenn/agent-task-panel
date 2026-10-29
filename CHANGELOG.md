@@ -23,6 +23,8 @@ All notable changes to this project will be documented in this file.
   minimum macOS version, packaged Windows/Linux backends, and uploaded GitHub Release assets.
 
 ### Changed
+- Only macOS has been tested in real use. Windows and Linux are CI-built preview packages
+  with packaging smoke tests, but no real-device validation yet.
 - Cloudflare Pages deployment uses `cloudflare/wrangler-action@v4`.
 - Dependabot vulnerability alerts and automated security fixes are enabled.
 - On Windows and Linux the backend now exposes local-session channels only; macOS-native app

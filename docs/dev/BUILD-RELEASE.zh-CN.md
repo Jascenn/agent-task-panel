@@ -136,6 +136,9 @@ git push origin v0.X.Y
 三个构建完成后，`publish` job 会下载全部 artifact，确认恰好有三个安装包，生成合并的
 `SHA256SUMS`，创建 GitHub Release，再下载已发布资产并回查名称和校验和。
 
+发布备注必须写清平台测试范围。当前只有 macOS 经过实际使用测试；Windows/Linux 即使 CI
+构建和打包冒烟检查通过，也只能标注为“预览版、尚未实机验证”，不能写成“已支持并验证”。
+
 ### 4. 本地手工打 DMG（仅排障用）
 
 ```bash

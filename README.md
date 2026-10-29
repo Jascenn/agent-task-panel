@@ -27,6 +27,10 @@ you get a notification when a task finishes, and clicking a card jumps straight 
 
 ## Install
 
+> **Platform testing status:** only the macOS build has been tested in real use.
+> Windows x64 and Linux x64 are built and smoke-tested in CI, but have not yet been
+> validated on real Windows or Linux machines. Please treat them as preview builds.
+
 Download the package for your platform from [Releases](https://github.com/Jascenn/agent-task-panel/releases/latest):
 
 | Platform | Package |
@@ -73,6 +77,7 @@ running tasks; Windows and Linux have a tray icon. All builds verify `SHA256SUMS
 - **Bundled backend**: Windows and Linux packages include the Python service, so no separate Python install is required
 - **Shared task contract**: desktop clients use the versioned local API and the same task state rules as macOS
 - **Verified downloads**: every release includes `SHA256SUMS` and is checked after upload
+- **Platform test status**: macOS is tested; Windows and Linux are CI-built preview builds, not yet validated on real devices
 
 → Full history: [CHANGELOG.md](CHANGELOG.md)
 
@@ -165,6 +170,7 @@ have been verified.
 - Session titles come from the first user message; injected system context (AGENTS.md etc.) is filtered out
 - The app is ad-hoc signed; Developer ID signing + notarization is planned once there's an Apple developer account
 - Windows and Linux support x64 only; Windows ARM64 is not currently published
+- Only macOS has been tested in real use; Windows and Linux are CI-built preview builds without real-device validation
 
 ## Docs
 
