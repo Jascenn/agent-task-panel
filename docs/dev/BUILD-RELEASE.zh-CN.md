@@ -27,7 +27,8 @@ pkill -f "AgentTaskPanel.app/Contents/MacOS/AgentTaskPanel" 2>/dev/null
 pkill -f "AgentTaskPanel.app/Contents/Resources/server.py" 2>/dev/null
 sleep 1
 
-# 3. 覆盖安装到 /Applications
+# 3. 先移除旧包再复制，避免 ditto 合并破坏签名
+rm -rf /Applications/AgentTaskPanel.app
 ditto AgentTaskPanel.app /Applications/AgentTaskPanel.app
 
 # 4. 重新启动
