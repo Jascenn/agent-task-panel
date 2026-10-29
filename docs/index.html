@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AgentTaskPanel — AI Agent 任务悬浮面板（macOS / Windows / Linux）</title>
-<meta name="description" content="跨平台 AI Agent 悬浮任务面板：聚合 Codex、Claude Code、DeepSeek 等会话状态，任务一结束就提醒，点一下跳回对应 Agent。支持 macOS、Windows x64 和 Linux x64。">
+<title>AgentTaskPanel — AI Agent 任务悬浮面板（macOS 实测 / Windows Linux 预览）</title>
+<meta name="description" content="跨平台 AI Agent 悬浮任务面板：聚合 Codex、Claude Code、DeepSeek 等会话状态。macOS 版本已实测；Windows x64 和 Linux x64 为 CI 构建的预览版，尚未实机验证。">
 <meta name="author" content="凌一（Jascenn）">
 <meta name="theme-color" content="#f7f3ec">
 <link rel="canonical" href="https://agentpanel.lingyi.tools/">
@@ -14,7 +14,7 @@
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   "name": "AgentTaskPanel",
-  "description": "聚合 Codex、Claude Code、DeepSeek 等 AI Agent 会话状态的跨平台悬浮任务面板。",
+  "description": "聚合 Codex、Claude Code、DeepSeek 等 AI Agent 会话状态的悬浮任务面板。macOS 已实测，Windows/Linux 为 CI 构建的预览版。",
   "applicationCategory": "DeveloperApplication",
   "operatingSystem": "macOS 12 or later, Windows x64, Linux x64",
   "softwareVersion": "0.4.0",
@@ -353,7 +353,7 @@
         </div>
         <div class="meta">
           <span>macOS Universal</span>
-          <span>Windows / Linux x64</span>
+          <span>Windows / Linux x64 · 预览</span>
           <span>数据不出本机</span>
         </div>
       </div>
@@ -444,6 +444,10 @@
       </div>
       <div class="install">
         <div class="steps reveal">
+          <p style="margin:0 0 14px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--paper-2);font-size:13px;color:var(--ink-2)">
+            <b>平台测试状态：</b>目前只有 macOS 版本经过实际使用测试。Windows/Linux 已由 CI
+            构建并完成打包冒烟检查，但尚未在真实设备上验证，请先按预览版对待。
+          </p>
           <ol>
             <li><b>macOS</b>：下载 <code>AgentTaskPanel-0.4.0-macos-universal.dmg</code>，把 App 拖进「应用程序」</li>
             <li><b>Windows x64</b>：下载 <code>AgentTaskPanel-0.4.0-win-x64.exe</code> 并运行安装程序</li>
@@ -471,7 +475,7 @@
         <details><summary>数据会上传吗？</summary><p>不会。面板只读本机的会话文件，服务跑在 <code>127.0.0.1:8765</code>，没有外发请求。</p></details>
         <details><summary>为什么有些 Agent 只显示「运行中」？</summary><p>Muse、ChatGPT 的任务在厂商服务端执行，本地没有可读的会话文件，只能确认进程在线。</p></details>
         <details><summary>需要装 Python 吗？</summary><p>用系统自带的 <code>/usr/bin/python3</code>。如果提示需要安装命令行工具，执行 <code>xcode-select --install</code>。</p></details>
-        <details><summary>支持 Windows / Linux 吗？</summary><p>支持 Windows x64 和 Linux x64，安装包与 macOS 同版本发布。Windows/Linux 目前只显示本地会话型 Agent（Codex、Claude Code、DeepSeek）；Cue、Grok Bot、Today 等 macOS App 型渠道会隐藏。暂不提供 Windows ARM64。</p></details>
+        <details><summary>支持 Windows / Linux 吗？</summary><p>提供 Windows x64 和 Linux x64 预览包，与 macOS 同版本发布，但尚未在真实设备上验证；目前只有 macOS 经过实际使用测试。Windows/Linux 只显示本地会话型 Agent（Codex、Claude Code、DeepSeek）；Cue、Grok Bot、Today 等 macOS App 型渠道会隐藏。暂不提供 Windows ARM64。</p></details>
       </div>
     </section>
   </div>

@@ -27,6 +27,10 @@
 
 ## 安装
 
+> **平台测试状态：目前只有 macOS 版本经过实际使用测试。**
+> Windows x64 和 Linux x64 已由 CI 构建并完成打包冒烟检查，但尚未在真实 Windows/Linux
+> 设备上验证，请先按预览版对待。
+
 从 [Releases](https://github.com/Jascenn/agent-task-panel/releases/latest) 下载对应平台的安装包：
 
 | 平台 | 安装包 |
@@ -72,6 +76,7 @@ Linux 使用托盘图标。每个 Release 都附带并校验 `SHA256SUMS`。
 - **后端随包分发**：Windows/Linux 安装包内含 Python 服务，无需另外安装 Python
 - **共享任务契约**：桌面客户端使用版本化本地 API，任务状态规则与 macOS 一致
 - **下载可校验**：每个 Release 附带 `SHA256SUMS`，上传后自动回查
+- **测试范围**：macOS 已实测；Windows/Linux 目前是 CI 构建的预览版，尚未实机验证
 
 → 完整历史：[CHANGELOG.md](CHANGELOG.md)
 
@@ -162,6 +167,7 @@ Dependabot 漏洞提醒和自动安全修复已启用；发布 tag 前会校验�
 - 会话标题取自首条用户消息，注入的系统上下文（AGENTS.md 等）已自动过滤
 - App 暂为 ad-hoc 签名，取得 Apple 开发者账号后会接入正式签名 + 公证
 - Windows/Linux 当前仅发布 x64；暂不提供 Windows ARM64
+- 目前只有 macOS 经过实际使用测试；Windows/Linux 是 CI 构建的预览版，尚未实机验证
 
 ## 开发者文档
 
