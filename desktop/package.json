@@ -1,0 +1,71 @@
+{
+  "name": "agent-task-panel-desktop",
+  "version": "0.4.0",
+  "private": true,
+  "description": "Windows/Linux desktop shell for AgentTaskPanel",
+  "license": "MIT",
+  "author": "Jascenn",
+  "homepage": "https://agentpanel.pages.dev/",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "backend": "node scripts/build-backend.mjs",
+    "pack": "npm run backend && electron-builder --dir",
+    "dist": "npm run backend && electron-builder --win nsis --linux AppImage",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "devDependencies": {
+    "electron": "45.1.0",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "dev.agentpanel.desktop",
+    "productName": "AgentTaskPanel",
+    "asar": true,
+    "asarUnpack": [
+      "resources/**"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "package.json",
+      "resources/panel.html",
+      "resources/server.py",
+      "resources/platforms.py",
+      "resources/agent-task-dashboard.html",
+      "resources/backend/**"
+    ],
+    "extraResources": [
+      {
+        "from": "../docs/appicon.png",
+        "to": "icon.png"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "category": "Utility",
+      "icon": "build/icon.png"
+    },
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
+  }
+}

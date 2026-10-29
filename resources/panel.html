@@ -150,15 +150,34 @@
     body.bg-solid .stat, body.bg-solid .task { background: #1e1e20; border-color: #333; }
   }
   body.bg-solid .stat, body.bg-solid .task { backdrop-filter: none; }
+  body.desktop-shell { padding-top: 34px; }
+  .desktop-only { display: none; }
+  body.desktop-shell .desktop-only { display: flex; }
+  body.desktop-shell #desktopDrag {
+    position: fixed; top: 0; left: 0; right: 0; height: 24px;
+    -webkit-app-region: drag; z-index: 20;
+  }
+  body.desktop-shell .iconbtn, body.desktop-shell .winbtn {
+    -webkit-app-region: no-drag;
+  }
+  .winbtn {
+    border: 0; background: transparent; color: var(--muted); width: 26px; height: 26px;
+    cursor: pointer; font-size: 15px; align-items: center; justify-content: center;
+  }
+  body.bg-clear.desktop-shell .winbtn { opacity: 0; transition: opacity .2s; }
+  body.bg-clear.desktop-shell:hover .winbtn { opacity: 1; }
 </style>
 </head>
 <body>
+  <div id="desktopDrag" class="desktop-only"></div>
   <div class="head">
     <h1>Agent 任务</h1>
     <button class="iconbtn" id="pinBtn" title="置顶开关">📌</button>
     <button class="iconbtn" id="settingsBtn" title="显示渠道配置">⚙️</button>
     <button class="iconbtn" id="bgBtn" title="背景：毛玻璃">◐</button>
     <button class="iconbtn" onclick="location.reload()" title="刷新">↻</button>
+    <button class="winbtn desktop-only" id="minBtn" title="最小化">—</button>
+    <button class="winbtn desktop-only" id="closeBtn" title="关闭">×</button>
   </div>
   <div id="cfgPanel" style="display:none; margin-bottom:10px; padding:10px; border:1px solid var(--border); border-radius:10px; background:var(--card);">
     <div style="font-size:12px; color:var(--muted); margin-bottom:6px;">显示哪些渠道（取消勾选即隐藏）</div>
@@ -184,7 +203,14 @@ AGENT_NAME["today-intl"] = "Today Intl";
 AGENT_NAME["today-cn"] = "Today CN";
 AGENT_NAME.deepseek = "DeepSeek";
 const STATUS = { running: "执行中", done: "已完成", idle: "空闲" };
+const DESKTOP = Boolean(window.agentPanel);
 let pinOn = false;
+
+if (DESKTOP) {
+  document.body.classList.add("desktop-shell");
+  document.getElementById("minBtn").onclick = () => window.agentPanel.windowAction("minimize");
+  document.getElementById("closeBtn").onclick = () => window.agentPanel.windowAction("close");
+}
 
 function ago(ts) {
   const s = Math.max(0, (Date.now() / 1000) - ts);
@@ -204,7 +230,7 @@ async function tick() {
     render(d.tasks);
     // 服务端下发的 finished 是本轮新完成任务（关窗期间完成的也会在下一次轮询补发）
     (d.finished || []).forEach(f => notifyDone(f));
-    if (d.pin !== pinOn) { pinOn = d.pin; syncPinBtn(); }
+    if (!DESKTOP && d.pin !== pinOn) { pinOn = d.pin; syncPinBtn(); }
   } catch (e) {
     failCount++;
     // 启动前几次失败静默重试（服务由 App 拉起有 1-2 秒就绪窗口）
@@ -239,7 +265,12 @@ function render(tasks) {
     const el = document.createElement("div");
     el.className = "task";
     el.onclick = () => {
-      if (t.link) location.href = t.link;
+      if (!t.link) return;
+      if (window.agentPanel?.openExternal) {
+        window.agentPanel.openExternal(t.link);
+      } else {
+        location.href = t.link;
+      }
     };
     const recent = t.recent ? `<div class="t-recent">${escapeHtml(t.recent)}</div>` : "";
     el.innerHTML = `
@@ -271,8 +302,13 @@ function escapeHtml(s) {
 function notifyDone(t) {
   // finished 条目只有 agent/title；agent 缺 AGENT_NAME 时回退 id
   // 原生壳注册了 webkit message handler 时走系统通知；否则页面内提示
+  const payload = { title: (AGENT_NAME[t.agent] || t.agent) + " 任务完成", body: t.title };
+  if (window.agentPanel?.notify) {
+    window.agentPanel.notify(payload);
+    return;
+  }
   try {
-    window.webkit.messageHandlers.notify.postMessage(JSON.stringify({ title: (AGENT_NAME[t.agent] || t.agent) + " 任务完成", body: t.title }));
+    window.webkit.messageHandlers.notify.postMessage(JSON.stringify(payload));
   } catch (e) {}
 }
 
@@ -302,6 +338,11 @@ document.getElementById("bgBtn").onclick = () => {
 applyBg();
 
 document.getElementById("pinBtn").onclick = async () => {
+  if (DESKTOP) {
+    pinOn = await window.agentPanel.windowAction("toggle-top");
+    syncPinBtn();
+    return;
+  }
   await fetch("/api/pin", { method: "POST" });
   pinOn = !pinOn;
   syncPinBtn();

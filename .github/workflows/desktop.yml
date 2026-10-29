@@ -1,0 +1,75 @@
+name: Desktop cross-platform
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Package on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux
+          - os: windows-latest
+            target: win
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        working-directory: desktop
+        env:
+          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+          ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
+        run: |
+          npm ci
+          python -m pip install --disable-pip-version-check pyinstaller
+
+      - name: Sync shared resources
+        working-directory: desktop
+        run: node scripts/sync-resources.mjs
+
+      - name: Run desktop tests
+        working-directory: desktop
+        run: npm test
+
+      - name: Build standalone backend
+        working-directory: desktop
+        run: npm run backend
+
+      - name: Package ${{ matrix.target }}
+        working-directory: desktop
+        env:
+          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+          ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
+        run: npx electron-builder --${{ matrix.target }} --publish never
+
+      - name: Upload package
+        uses: actions/upload-artifact@v5
+        with:
+          name: AgentTaskPanel-${{ matrix.target }}
+          path: desktop/dist/*
+          if-no-files-found: error

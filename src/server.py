@@ -6,7 +6,8 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse
 from platforms import detect_runtime
 
-HTML_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "agent-task-dashboard.html")
+RESOURCE_DIR = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+HTML_PATH = os.path.join(RESOURCE_DIR, "agent-task-dashboard.html")
 
 RUNTIME = detect_runtime()
 HOME = RUNTIME.home
@@ -18,6 +19,7 @@ CONFIG_PATH = RUNTIME.config_path
 PID_PATH = RUNTIME.pid_path
 API_VERSION = 1
 TASK_STATUSES = {"running", "done", "idle"}
+PORT = int(os.environ.get("AGENT_PANEL_PORT", "8765"))
 
 # 构建标识：App 启动时用同一个算法算自己 bundle 里 server.py 的指纹并传进来。
 # 端口上若跑着指纹不同的旧进程（重装后常见），App 会杀掉它再拉起新服务，
@@ -755,4 +757,4 @@ if __name__ == "__main__":
             fh.write(str(os.getpid()))
     except OSError:
         pass
-    HTTPServer(("127.0.0.1", 8765), Handler).serve_forever()
+    HTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
