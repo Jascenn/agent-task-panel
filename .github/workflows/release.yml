@@ -307,7 +307,8 @@ jobs:
           trap 'rm -rf "$DOWNLOAD_DIR"' EXIT
 
           for attempt in $(seq 1 10); do
-            if gh release download "$GITHUB_REF_NAME" --dir "$DOWNLOAD_DIR" --clobber; then
+            if gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+              --dir "$DOWNLOAD_DIR" --clobber; then
               break
             fi
             sleep 3
@@ -324,6 +325,6 @@ jobs:
             "AgentTaskPanel-${VERSION}-macos-universal.dmg" \
             "AgentTaskPanel-${VERSION}-win-x64.exe" \
             "SHA256SUMS" | sort)"
-          ACTUAL="$(gh release view "$GITHUB_REF_NAME" --json assets \
+          ACTUAL="$(gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json assets \
             --jq '.assets[].name' | sort)"
           test "$ACTUAL" = "$EXPECTED"
