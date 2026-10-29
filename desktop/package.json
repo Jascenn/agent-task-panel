@@ -35,7 +35,6 @@
       "main.js",
       "preload.js",
       "package.json",
-      "resources/panel.html",
       "resources/server.py",
       "resources/platforms.py",
       "resources/agent-task-dashboard.html",

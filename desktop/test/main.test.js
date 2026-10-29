@@ -7,7 +7,7 @@ const ROOT = path.resolve(__dirname, "..");
 const mainSource = fs.readFileSync(path.join(ROOT, "main.js"), "utf8");
 
 test("backend resources exist", () => {
-  for (const name of ["panel.html", "server.py", "platforms.py"]) {
+  for (const name of ["agent-task-dashboard.html", "server.py", "platforms.py"]) {
     assert.ok(fs.existsSync(path.join(ROOT, "resources", name)), `${name} missing`);
   }
 });
