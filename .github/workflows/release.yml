@@ -66,7 +66,7 @@ jobs:
           xcrun vtool -show-build "$BIN" | grep -q "minos 12.0"
 
       - name: Upload macOS package
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: release-macos
           path: AgentTaskPanel-*-macos-universal.dmg
@@ -79,13 +79,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
           cache: npm
           cache-dependency-path: desktop/package-lock.json
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -135,7 +135,7 @@ jobs:
           }
 
       - name: Upload Windows package
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: release-windows
           path: desktop/dist/AgentTaskPanel-*-win-x64.exe
@@ -148,13 +148,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
           cache: npm
           cache-dependency-path: desktop/package-lock.json
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -211,7 +211,7 @@ jobs:
           test -s panel.html
 
       - name: Upload Linux package
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: release-linux
           path: desktop/dist/AgentTaskPanel-*-linux-x86_64.AppImage
@@ -248,7 +248,7 @@ jobs:
           PY
 
       - name: Download packages
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           path: release
           pattern: release-*
