@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.4.1] - 2026-11-07
 
 ### Fixed
 - CI no longer fails before running a single step on macOS. All workflows moved from the retired

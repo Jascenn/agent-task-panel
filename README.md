@@ -35,9 +35,9 @@ Download the package for your platform from [Releases](https://github.com/Jascen
 
 | Platform | Package |
 |---|---|
-| macOS 12+ | `AgentTaskPanel-0.4.0-macos-universal.dmg` |
-| Windows x64 | `AgentTaskPanel-0.4.0-win-x64.exe` |
-| Linux x64 | `AgentTaskPanel-0.4.0-linux-x86_64.AppImage` |
+| macOS 12+ | `AgentTaskPanel-0.4.1-macos-universal.dmg` |
+| Windows x64 | `AgentTaskPanel-0.4.1-win-x64.exe` |
+| Linux x64 | `AgentTaskPanel-0.4.1-linux-x86_64.AppImage` |
 
 **macOS**: open the DMG and drag 🤖 AgentTaskPanel into Applications. If macOS says it
 "cannot be verified", right-click the app → Open, or run
@@ -49,8 +49,8 @@ code-signed.
 **Linux**: make the AppImage executable, then launch it:
 
 ```bash
-chmod +x AgentTaskPanel-0.4.0-linux-x86_64.AppImage
-./AgentTaskPanel-0.4.0-linux-x86_64.AppImage
+chmod +x AgentTaskPanel-0.4.1-linux-x86_64.AppImage
+./AgentTaskPanel-0.4.1-linux-x86_64.AppImage
 ```
 
 The local data service starts with the app. On macOS, a 🤖 menu bar item shows the number of
@@ -71,13 +71,11 @@ running tasks; Windows and Linux have a tray icon. All builds verify `SHA256SUMS
 - **Finish notifications**: a system notification fires when a task transitions running → done
 - **Launch at login**: one toggle in the menu, implemented as a LaunchAgent
 
-## What's new in v0.4.0
+## What's new in v0.4.1
 
-- **Three platforms, one release**: macOS Universal DMG, Windows x64 installer, and Linux x64 AppImage are built from the same tag
-- **Bundled backend**: Windows and Linux packages include the Python service, so no separate Python install is required
-- **Shared task contract**: desktop clients use the versioned local API and the same task state rules as macOS
-- **Verified downloads**: every release includes `SHA256SUMS` and is checked after upload
-- **Platform test status**: macOS is tested; Windows and Linux are CI-built preview builds, not yet validated on real devices
+- **Stuck tasks fixed**: DeepSeek Harness sessions no longer sit on "running" after the process dies. The scanner cached the computed status, so once a session stopped being written the zombie check could never run again
+- **CI unblocked**: macOS jobs moved off the retired `macos-14` runner image, which failed before executing a single step and blocked merges on the required `build` check
+- **Runner guard**: the test suite now rejects retired macOS runner labels, so the next retirement fails loudly instead of silently freezing the pipeline
 
 → Full history: [CHANGELOG.md](CHANGELOG.md)
 
