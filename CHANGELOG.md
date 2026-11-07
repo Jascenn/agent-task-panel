@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- CI no longer fails before running a single step on macOS. All workflows moved from the retired
+  `macos-14` arm64 image to `macos-15`, and `tests/test_release_metadata.py` now rejects retired
+  macOS runner labels so the next retirement fails loudly in the test suite instead of silently
+  blocking merges.
 - DeepSeek Harness sessions no longer stay stuck on `running` after the process dies. `scan_dsh`
   cached the finished task dict, status included, and returned it verbatim on every cache hit, so
   the zombie demotion to `idle` never ran again once the file stopped being written. The cache now

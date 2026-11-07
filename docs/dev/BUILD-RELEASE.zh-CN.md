@@ -130,7 +130,7 @@ git push origin v0.X.Y
 
 | Runner | 产物 | 验证 |
 |---|---|---|
-| macOS 14 | `AgentTaskPanel-0.X.Y-macos-universal.dmg` | 签名、双架构、最低 macOS 12、DMG 内容 |
+| macOS 15 (arm64) | `AgentTaskPanel-0.X.Y-macos-universal.dmg` | 签名、双架构、最低 macOS 12、DMG 内容 |
 | Windows latest | `AgentTaskPanel-0.X.Y-win-x64.exe` | NSIS 产物大小、包内后端为 x64 PE |
 | Ubuntu latest | `AgentTaskPanel-0.X.Y-linux-x86_64.AppImage` | 包内后端实际启动、`/api/health` 和页面 200 |
 
@@ -139,6 +139,20 @@ git push origin v0.X.Y
 
 发布备注必须写清平台测试范围。当前只有 macOS 经过实际使用测试；Windows/Linux 即使 CI
 构建和打包冒烟检查通过，也只能标注为“预览版、尚未实机验证”，不能写成“已支持并验证”。
+
+### Runner 标签
+
+所有 workflow 统一用 `macos-15`。**不要用 `macos-14`**：它的 arm64 镜像已经下线，
+`runs-on: macos-14` 会在 **0 步**内失败并报
+`The configuration 'macos-14-arm64-us-default' is not supported`。
+这类 job 一步都没执行，很容易被误读成测试失败或代码问题。
+
+- `macos-15` / `macos-latest` 解析到 `macos-15-arm64`，可用
+- `macos-13` 已排队等不到机器，同样不要用
+- arm64 runner 上照样出 universal 产物：`scripts/build.sh` 对两个架构显式传
+  `-target <arch>-apple-macos12.0` 交叉编译，再 `lipo -create`，不依赖宿主架构
+- `tests/test_release_metadata.py::WorkflowRunnerTests` 会扫描所有 workflow，
+  出现退役标签直接失败
 
 ### 4. 本地手工打 DMG（仅排障用）
 
