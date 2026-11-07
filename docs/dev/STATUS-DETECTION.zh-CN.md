@@ -31,6 +31,20 @@ Grok 的 blob 里没有 role/完成字段（实测 `awaitingUserResponse` 全为
 - 历史样本不足 3 个间隔时用 900s 兜底
 - 降级成 idle **不会**触发「任务完成」通知（只有 running → done 才通知）
 
+## 缓存与状态计算
+
+状态依赖「现在几点」（僵尸降级会随时间推进），所以**缓存里不能存状态**：
+
+- 缓存只存解析事实（标题、`turn_open`、事件时间戳等）
+- 状态在每次读取时重算，**缓存命中也一样**
+
+`scan_dsh` 曾经把算好的 `task`（含 `status`）整个塞进 `_file_cache`，mtime 未变就直接返回。
+后果：回合开着时进程崩了，首次扫描看到较新的 mtime 判为 running，之后文件不再更新 →
+永远命中缓存 → 僵尸降级再也不会执行，任务一直显示执行中，直到 24 小时窗口把它扫出去。
+
+`scan_codex` / `scan_claude` / `scan_dsh` 现在都是同一套写法：`parse_*_file()` 只返回事实，
+`scan_*()` 每次算状态。新增渠道请照此实现。
+
 ## 通知
 
 服务端 `_prev_tasks` 按稳定 `task_id` 对比上一轮状态，`running → done` 才进入 `finished` 数组，
