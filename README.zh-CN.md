@@ -35,9 +35,9 @@
 
 | 平台 | 安装包 |
 |---|---|
-| macOS 12+ | `AgentTaskPanel-0.4.0-macos-universal.dmg` |
-| Windows x64 | `AgentTaskPanel-0.4.0-win-x64.exe` |
-| Linux x64 | `AgentTaskPanel-0.4.0-linux-x86_64.AppImage` |
+| macOS 12+ | `AgentTaskPanel-0.4.1-macos-universal.dmg` |
+| Windows x64 | `AgentTaskPanel-0.4.1-win-x64.exe` |
+| Linux x64 | `AgentTaskPanel-0.4.1-linux-x86_64.AppImage` |
 
 **macOS**：打开 DMG，把 🤖 AgentTaskPanel 拖进 Applications。若提示「无法验证开发者」，
 右键 App → 打开，或终端执行
@@ -48,8 +48,8 @@
 **Linux**：先添加执行权限，再启动：
 
 ```bash
-chmod +x AgentTaskPanel-0.4.0-linux-x86_64.AppImage
-./AgentTaskPanel-0.4.0-linux-x86_64.AppImage
+chmod +x AgentTaskPanel-0.4.1-linux-x86_64.AppImage
+./AgentTaskPanel-0.4.1-linux-x86_64.AppImage
 ```
 
 本地数据服务随 App 自动启动。macOS 菜单栏 🤖 图标实时显示执行中任务数；Windows 和
@@ -70,13 +70,11 @@ Linux 使用托盘图标。每个 Release 都附带并校验 `SHA256SUMS`。
 - **完成通知**：任务从执行中变已完成时发系统通知
 - **开机自启**：菜单一键开关，通过 LaunchAgent 实现
 
-## v0.4.0 更新
+## v0.4.1 更新
 
-- **三平台同版发布**：同一个 tag 产出 macOS Universal DMG、Windows x64 安装包和 Linux x64 AppImage
-- **后端随包分发**：Windows/Linux 安装包内含 Python 服务，无需另外安装 Python
-- **共享任务契约**：桌面客户端使用版本化本地 API，任务状态规则与 macOS 一致
-- **下载可校验**：每个 Release 附带 `SHA256SUMS`，上传后自动回查
-- **测试范围**：macOS 已实测；Windows/Linux 目前是 CI 构建的预览版，尚未实机验证
+- **修复卡住的任务**：DeepSeek Harness 会话在进程退出后不再一直显示"执行中"。之前扫描器把算好的状态存进了缓存，会话不再写文件后僵尸检测就再也不会执行
+- **CI 恢复**：macOS 相关 job 从已下线的 `macos-14` 镜像迁到 `macos-15`。旧镜像会在执行任何步骤前就失败，卡住必需的 `build` 检查，导致无法合并
+- **Runner 守卫**：测试套件现在会拒绝已退役的 macOS runner 标签，下次再有镜像下线会直接在测试里报错，而不是悄悄冻结流水线
 
 → 完整历史：[CHANGELOG.md](CHANGELOG.md)
 

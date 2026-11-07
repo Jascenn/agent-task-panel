@@ -1,6 +1,6 @@
 {
   "name": "agent-task-panel-desktop",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": true,
   "description": "Windows/Linux desktop shell for AgentTaskPanel",
   "license": "MIT",
@@ -50,7 +50,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "build/icon.png"
@@ -61,7 +63,9 @@
       "perMachine": false
     },
     "linux": {
-      "target": ["AppImage"],
+      "target": [
+        "AppImage"
+      ],
       "category": "Utility",
       "icon": "build/icon.png"
     },
