@@ -398,6 +398,47 @@ def _dsh_proc_alive():
     return r.returncode == 0
 
 
+def parse_dsh_file(f):
+    """解析 dsh 会话文件，只返回解析事实，不返回 status。
+
+    status 依赖"现在几点"（僵尸降级），必须每次读取时重算；
+    缓存里存算好的 status 的话，mtime 不变就永远是那份快照。
+    """
+    title, recent = None, ""
+    turn_open, turn_ts = False, []
+    try:
+        raw = subprocess.run(["zstd", "-dc", f], capture_output=True, timeout=10).stdout
+    except Exception:
+        raw = b""
+    for line in raw.decode("utf-8", "ignore").splitlines():
+        head = line[:600]
+        if not ('"session/title"' in head or '"user/message"' in head
+                or '"turn/start"' in head or '"turn/end"' in head):
+            continue
+        try:
+            j = json.loads(line)
+        except Exception:
+            continue
+        t, d = j.get("type"), j.get("data") or {}
+        ts = parse_ts(j.get("timestamp") or j.get("time") or d.get("timestamp"))
+        if ts:
+            turn_ts.append(ts)
+        if t == "session/title" and not title and d.get("title"):
+            title = first_text(d["title"])
+        elif t == "user/message" and not recent:
+            parts = d.get("content") or [{}]
+            txt = parts[0].get("text", "") if isinstance(parts[0], dict) else ""
+            # 跳过运行时上下文/系统注入的伪用户消息
+            if txt and not txt.startswith(("<", "Current runtime", "Current DSH")):
+                recent = first_text(txt)
+        elif t == "turn/start":
+            turn_open = True
+        elif t == "turn/end":
+            turn_open = False
+    return {"title": title, "recent": recent,
+            "turn_open": turn_open, "turn_ts": tuple(turn_ts)}
+
+
 def scan_dsh():
     # DeepSeek Harness 会话：zstd 压缩的 v4 jsonl；turn/start → turn/end 是回合边界
     out = []
@@ -408,54 +449,25 @@ def scan_dsh():
             continue
         cached = _file_cache["dsh"].get(f)
         if cached and cached[0] == mtime:
-            out.append(cached[1])
-            continue
-        title, recent = None, ""
-        turn_open, turn_ts = False, []
-        try:
-            raw = subprocess.run(["zstd", "-dc", f], capture_output=True, timeout=10).stdout
-        except Exception:
-            raw = b""
-        for line in raw.decode("utf-8", "ignore").splitlines():
-            head = line[:600]
-            if not ('"session/title"' in head or '"user/message"' in head
-                    or '"turn/start"' in head or '"turn/end"' in head):
-                continue
-            try:
-                j = json.loads(line)
-            except Exception:
-                continue
-            t, d = j.get("type"), j.get("data") or {}
-            ts = parse_ts(j.get("timestamp") or j.get("time") or d.get("timestamp"))
-            if ts:
-                turn_ts.append(ts)
-            if t == "session/title" and not title and d.get("title"):
-                title = first_text(d["title"])
-            elif t == "user/message" and not recent:
-                parts = d.get("content") or [{}]
-                txt = parts[0].get("text", "") if isinstance(parts[0], dict) else ""
-                # 跳过运行时上下文/系统注入的伪用户消息
-                if txt and not txt.startswith(("<", "Current runtime", "Current DSH")):
-                    recent = first_text(txt)
-            elif t == "turn/start":
-                turn_open = True
-            elif t == "turn/end":
-                turn_open = False
+            facts = cached[1]
+        else:
+            facts = parse_dsh_file(f)
+            _file_cache["dsh"][f] = (mtime, facts)
+        title, recent = facts["title"], facts["recent"]
         if not (title or recent):
             continue
-        if turn_open:
-            # 回合开着但久无写入 → 进程大概率已退出
-            status = demote_if_zombie("running", mtime, zombie_threshold(turn_ts))
+        if facts["turn_open"]:
+            # 回合开着但久无写入 → 进程大概率已退出。
+            # 每次读取都重算（缓存命中也一样），否则僵尸永远降不下来。
+            status = demote_if_zombie("running", mtime, zombie_threshold(facts["turn_ts"]))
         else:
             status = "done"
-        # 状态在读取时计算，缓存里存的是快照；mtime 未变则状态也不会变
-        task = {"agent": "deepseek", "title": title or recent or "DeepSeek 会话",
-                "cwd": "", "status": status,
-                "mtime": mtime, "link": "dsh://",
-                "recent": recent if title else "", "recent_at": ""}
-        _file_cache["dsh"][f] = (mtime, task)
-        out.append(task)
+        out.append({"agent": "deepseek", "title": title or recent or "DeepSeek 会话",
+                    "cwd": "", "status": status,
+                    "mtime": mtime, "link": "dsh://",
+                    "recent": recent if title else "", "recent_at": ""})
     return out
+
 
 def parse_codex_file(f):
     tid = re.search(r"-([0-9a-f-]{36})\.jsonl$", f)
