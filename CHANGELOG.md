@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- DeepSeek Harness sessions no longer stay stuck on `running` after the process dies. `scan_dsh`
+  cached the finished task dict, status included, and returned it verbatim on every cache hit, so
+  the zombie demotion to `idle` never ran again once the file stopped being written. The cache now
+  stores only parsed facts (`title`, `recent`, `turn_open`, turn timestamps) and the status is
+  recomputed on each read, matching `scan_codex` and `scan_claude`.
+
 ## [0.4.0] - 2026-10-29
 
 ### Added
